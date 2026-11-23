@@ -428,6 +428,7 @@
                 <li class="menu-item" data-secao="membros">Membros</li>
                 <li class="menu-item" data-secao="aniversariantes">Aniversariantes</li>
                 <li class="menu-item" data-secao="celulas">Células</li>
+                <li class="menu-item" data-secao="ministerios" data-admin hidden>Ministérios</li>
                 <li class="menu-item" data-secao="estatisticas">Estatísticas</li>
                 <li class="menu-separador"></li>
                 <li class="menu-item" data-secao="lixeira">Lixeira</li>
@@ -485,12 +486,6 @@
                             </select>
                             <select class="select-filtro" id="filtro-ministerio">
                                 <option value="">Todos os ministérios</option>
-                                <option value="Louvor">Louvor</option>
-                                <option value="Infantil">Infantil</option>
-                                <option value="Visitação">Visitação</option>
-                                <option value="Comunicação">Comunicação</option>
-                                <option value="Recepção">Recepção</option>
-                                <option value="Nenhum">Nenhum</option>
                             </select>
                         </div>
                         <div class="tabela-container">
@@ -582,6 +577,24 @@
                     </div>
                 </div>
 
+                <!-- Ministérios (administrador) -->
+                <div id="ministerios" class="abas">
+                    <div class="secao-lista">
+                        <h2>Ministérios</h2>
+                        <p class="descricao">Renomear atualiza todos os membros do ministério. Ao apagar, os membros passam para "Nenhum".</p>
+                        <div style="margin-bottom:16px"><button class="botao botao-primario" onclick="app.abrirNovoMinisterio()">+ Novo ministério</button></div>
+                        <div class="tabela-container">
+                            <table>
+                                <thead>
+                                    <tr><th>Ministério</th><th>Membros</th><th>Ações</th></tr>
+                                </thead>
+                                <tbody id="tabela-ministerios"></tbody>
+                            </table>
+                        </div>
+                        <div id="mensagem-vazia-ministerios" class="mensagem-vazia"></div>
+                    </div>
+                </div>
+
                 <!-- Usuários e acessos (administrador) -->
                 <div id="usuarios" class="abas">
                     <div class="secao-lista">
@@ -606,6 +619,7 @@
                         <h2>Mais opções</h2>
                         <div class="lista-mais">
                             <button class="botao botao-secundario" onclick="app.mudarSecao('celulas')">🏠 Células</button>
+                            <button class="botao botao-secundario" data-admin hidden onclick="app.mudarSecao('ministerios')">🏷️ Ministérios</button>
                             <button class="botao botao-secundario" onclick="app.mudarSecao('lixeira')">🗑️ Lixeira</button>
                             <button class="botao botao-secundario" data-admin hidden onclick="app.mudarSecao('usuarios')">👤 Usuários e acessos</button>
                             <button class="botao botao-secundario" onclick="app.sair()">🚪 Sair</button>
@@ -656,6 +670,27 @@
                 <div class="botoes-modal">
                     <button type="button" class="botao botao-secundario" onclick="app.fecharNovoUsuario()">Cancelar</button>
                     <button type="submit" class="botao botao-primario" id="btn-criar-usuario">Criar usuário</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Ministério (administrador) -->
+    <div class="modal" id="modal-ministerio">
+        <div class="modal-conteudo">
+            <div class="modal-header">
+                <h2 id="modal-ministerio-titulo">Novo ministério</h2>
+                <button class="fechar-modal" type="button" onclick="app.fecharModalMinisterio()" aria-label="Fechar">×</button>
+            </div>
+            <form id="form-ministerio-dados" onsubmit="app.salvarMinisterio(event)" autocomplete="off">
+                <div class="form-grupo">
+                    <label>Nome do ministério *</label>
+                    <input type="text" id="ministerio-nome" required minlength="2" maxlength="60">
+                </div>
+                <div class="botoes-modal">
+                    <button type="button" class="botao botao-perigo" id="btn-apagar-ministerio" onclick="app.apagarMinisterio()" hidden>Apagar</button>
+                    <button type="button" class="botao botao-secundario" onclick="app.fecharModalMinisterio()">Cancelar</button>
+                    <button type="submit" class="botao botao-primario" id="btn-salvar-ministerio">Salvar</button>
                 </div>
             </form>
         </div>
@@ -788,11 +823,6 @@
                         <label>Ministério</label>
                         <select id="form-ministerio">
                             <option value="Nenhum">Nenhum</option>
-                            <option value="Louvor">Louvor</option>
-                            <option value="Infantil">Infantil</option>
-                            <option value="Visitação">Visitação</option>
-                            <option value="Comunicação">Comunicação</option>
-                            <option value="Recepção">Recepção</option>
                         </select>
                     </div>
                     <div class="form-grupo">
@@ -931,6 +961,7 @@
                 document.getElementById('menu-rodape').textContent = `${perfil.nome ? perfil.nome + ' · ' : ''}${usuario.email} · ${ROTULOS_PAPEL[perfil.papel]}`;
 
                 this.mostrarTela('app');
+                await this.carregarListas();
                 this.mudarSecao('painel');
             },
 
@@ -1035,19 +1066,19 @@
             },
 
             mudarSecao(secao) {
-                if (secao === 'usuarios' && (!this.perfil || this.perfil.papel !== 'admin')) return;
+                if ((secao === 'usuarios' || secao === 'ministerios') && (!this.perfil || this.perfil.papel !== 'admin')) return;
                 this.secaoAtual = secao;
                 document.querySelectorAll('.abas').forEach(aba => aba.classList.remove('ativa'));
                 document.getElementById(secao).classList.add('ativa');
                 document.querySelectorAll('[data-secao]').forEach(i => {
                     const alvo = i.getAttribute('data-secao');
                     // no celular, Lixeira e Usuários ficam dentro de "Mais"
-                    const ativo = alvo === secao || (alvo === 'mais' && (secao === 'lixeira' || secao === 'usuarios' || secao === 'celulas'));
+                    const ativo = alvo === secao || (alvo === 'mais' && (secao === 'lixeira' || secao === 'usuarios' || secao === 'celulas' || secao === 'ministerios'));
                     if (i.closest('.menu-mobile') || i.classList.contains('menu-item')) i.classList.toggle('ativo', ativo);
                 });
 
                 const titulos = {
-                    painel: 'Painel', membros: 'Membros', aniversariantes: 'Aniversariantes', celulas: 'Células',
+                    painel: 'Painel', membros: 'Membros', aniversariantes: 'Aniversariantes', celulas: 'Células', ministerios: 'Ministérios',
                     estatisticas: 'Estatísticas', lixeira: 'Lixeira', usuarios: 'Usuários e acessos', mais: 'Mais'
                 };
                 document.getElementById('titulo-secao').textContent = titulos[secao];
@@ -1061,6 +1092,7 @@
                 if (s === 'membros') this.renderMembros();
                 if (s === 'aniversariantes') this.renderAniversariantes();
                 if (s === 'celulas') this.renderCelulas();
+                if (s === 'ministerios') this.renderMinisterios();
                 if (s === 'estatisticas') this.renderEstatisticas();
                 if (s === 'lixeira') this.renderLixeira();
                 if (s === 'usuarios') this.renderUsuarios();
@@ -1355,11 +1387,12 @@
 
             // ---------- Listas de apoio (membros e células) ----------
             async carregarListas() {
-                const [m, c] = await Promise.all([
+                const [m, c, mi] = await Promise.all([
                     db.from('membros').select('id,nome,telefone').is('excluido_em', null).order('nome').limit(1000),
-                    db.from('celulas').select('id,nome').order('nome')
+                    db.from('celulas').select('id,nome').order('nome'),
+                    db.from('ministerios').select('nome').order('nome')
                 ]);
-                if (m.error || c.error) { this.toast('Não foi possível carregar as listas.', true); return false; }
+                if (m.error || c.error || mi.error) { this.toast('Não foi possível carregar as listas.', true); return false; }
 
                 const repetidos = {};
                 m.data.forEach(x => { const k = x.nome.trim().toLowerCase(); repetidos[k] = (repetidos[k] || 0) + 1; });
@@ -1370,7 +1403,26 @@
                 this.listaCelulas = c.data;
                 this.mapaMembros = {}; this.listaMembros.forEach(x => { this.mapaMembros[x.id] = x.rotulo; });
                 this.mapaCelulas = {}; c.data.forEach(x => { this.mapaCelulas[x.id] = x.nome; });
+                this.listaMinisterios = mi.data.map(x => x.nome);
+                this.preencherMinisterios();
                 return true;
+            },
+
+            // Preenche o campo da ficha e o filtro com a lista de ministérios (mantém a escolha atual)
+            preencherMinisterios() {
+                const lista = this.listaMinisterios || [];
+                const outros = lista.filter(n => n !== 'Nenhum');
+                const opt = n => `<option value="${esc(n)}">${esc(n)}</option>`;
+
+                const campo = document.getElementById('form-ministerio');
+                const atualCampo = campo.value;
+                campo.innerHTML = opt('Nenhum') + outros.map(opt).join('');
+                campo.value = lista.includes(atualCampo) ? atualCampo : 'Nenhum';
+
+                const filtro = document.getElementById('filtro-ministerio');
+                const atualFiltro = filtro.value;
+                filtro.innerHTML = '<option value="">Todos os ministérios</option>' + outros.map(opt).join('') + opt('Nenhum');
+                filtro.value = lista.includes(atualFiltro) ? atualFiltro : '';
             },
 
             opcoesMembros(selecionado, ignorarId, extra = '') {
@@ -1386,6 +1438,97 @@
                 const sel = selecionado ? Number(selecionado) : null;
                 return '<option value="">Sem célula</option>' + this.listaCelulas
                     .map(x => `<option value="${x.id}"${x.id === sel ? ' selected' : ''}>${esc(x.nome)}</option>`).join('');
+            },
+
+            // ---------- Ministérios (administrador) ----------
+            async renderMinisterios() {
+                const { data, error } = await db.from('ministerios').select('nome').order('nome');
+                if (error) { this.toast('Erro ao carregar os ministérios.', true); return; }
+
+                const tbody = document.getElementById('tabela-ministerios');
+                const msgVazia = document.getElementById('mensagem-vazia-ministerios');
+                const lista = [{ nome: 'Nenhum' }, ...data.filter(x => x.nome !== 'Nenhum')];
+
+                const contagens = await Promise.all(lista.map(x =>
+                    db.from('membros').select('id', { count: 'exact', head: true }).eq('ministerio', x.nome).is('excluido_em', null)));
+                if (this.secaoAtual !== 'ministerios') return;
+
+                this.ministeriosTela = lista.map((x, i) => ({ nome: x.nome, total: contagens[i].count ?? 0 }));
+                msgVazia.textContent = '';
+                tbody.innerHTML = this.ministeriosTela.map((x, i) => `
+                    <tr>
+                        <td class="col-nome" data-label="Ministério">${esc(x.nome)}</td>
+                        <td data-label="Membros">${x.total}</td>
+                        <td data-label="Ações">${x.nome === 'Nenhum'
+                            ? '<span style="color:var(--cor-texto-luz);font-size:12px">Padrão, não pode ser alterado</span>'
+                            : `<button class="botao botao-primario botao-pequeno" onclick="app.abrirMinisterio(${i})">Renomear ou apagar</button>`}</td>
+                    </tr>`).join('');
+            },
+
+            abrirNovoMinisterio() {
+                this.ministerioEditando = null;
+                document.getElementById('modal-ministerio-titulo').textContent = 'Novo ministério';
+                document.getElementById('form-ministerio-dados').reset();
+                document.getElementById('btn-apagar-ministerio').hidden = true;
+                document.getElementById('modal-ministerio').classList.add('aberto');
+            },
+
+            abrirMinisterio(i) {
+                const x = this.ministeriosTela[i];
+                if (!x || x.nome === 'Nenhum') return;
+                this.ministerioEditando = x;
+                document.getElementById('modal-ministerio-titulo').textContent = 'Renomear ministério';
+                document.getElementById('ministerio-nome').value = x.nome;
+                document.getElementById('btn-apagar-ministerio').hidden = false;
+                document.getElementById('modal-ministerio').classList.add('aberto');
+            },
+
+            async salvarMinisterio(event) {
+                event.preventDefault();
+                if (!this.perfil || this.perfil.papel !== 'admin') return;
+                const nome = document.getElementById('ministerio-nome').value.trim().replace(/\s+/g, ' ');
+                if (nome.length < 2) { this.toast('Informe o nome do ministério.', true); return; }
+
+                const btn = document.getElementById('btn-salvar-ministerio');
+                btn.disabled = true;
+                const { error } = this.ministerioEditando
+                    ? await db.from('ministerios').update({ nome }).eq('nome', this.ministerioEditando.nome)
+                    : await db.from('ministerios').insert({ nome });
+                btn.disabled = false;
+
+                if (error) {
+                    this.toast(error.code === '23505' ? 'Já existe um ministério com esse nome.' : 'Não foi possível salvar o ministério.', true);
+                    return;
+                }
+                const renomeou = !!this.ministerioEditando;
+                this.fecharModalMinisterio();
+                this.toast(renomeou ? 'Ministério renomeado.' : 'Ministério criado.');
+                await this.atualizarMinisterios();
+            },
+
+            async apagarMinisterio() {
+                const x = this.ministerioEditando;
+                if (!x || !this.perfil || this.perfil.papel !== 'admin') return;
+                const aviso = x.total > 0
+                    ? `Apagar o ministério "${x.nome}"? ${x.total} membro(s) passarão para "Nenhum".`
+                    : `Apagar o ministério "${x.nome}"?`;
+                if (!confirm(aviso)) return;
+                const { error } = await db.from('ministerios').delete().eq('nome', x.nome);
+                if (error) { this.toast('Não foi possível apagar o ministério.', true); return; }
+                this.fecharModalMinisterio();
+                this.toast('Ministério apagado.');
+                await this.atualizarMinisterios();
+            },
+
+            fecharModalMinisterio() {
+                document.getElementById('modal-ministerio').classList.remove('aberto');
+                document.getElementById('form-ministerio-dados').reset();
+                this.ministerioEditando = null;
+            },
+
+            async atualizarMinisterios() {
+                await this.carregarListas();
+                this.renderizarSecaoAtual();
             },
 
             // ---------- Células ----------
