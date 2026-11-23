@@ -160,6 +160,16 @@
         .nome-clicavel { color: var(--cor-accent); cursor: pointer; font-weight: 500; }
         .nome-clicavel:hover { text-decoration: underline; }
         .situacao-ativo { color: #4ade80; font-weight: 600; }
+        .situacao-aguardando {
+            color: #60a5fa; font-weight: 600;
+            background-color: rgba(96,165,250,0.18);
+            padding: 2px 8px; border-radius: 3px; display: inline-block;
+        }
+        .aviso-aprovacao {
+            display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+            background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.45);
+            border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; color: var(--cor-branco);
+        }
         .situacao-visitante {
             color: var(--cor-visitante); font-weight: 600;
             background-color: rgba(212,148,30,0.2);
@@ -202,13 +212,14 @@
             display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px;
             color: var(--cor-accent); letter-spacing: 0.3px;
         }
-        .form-grupo input, .form-grupo select {
+        .form-grupo input, .form-grupo select, .form-grupo textarea {
             width: 100%; padding: 11px 10px; border: 1px solid var(--cor-borda);
             border-radius: 6px; font-size: 16px; font-family: inherit;
             background-color: rgba(255,255,255,0.05); color: var(--cor-branco);
         }
+        .form-grupo textarea { resize: vertical; min-height: 90px; }
         .form-grupo select option { background-color: var(--cor-principal); color: var(--cor-branco); }
-        .form-grupo input:focus, .form-grupo select:focus {
+        .form-grupo input:focus, .form-grupo select:focus, .form-grupo textarea:focus {
             outline: none; border-color: var(--cor-accent);
             box-shadow: 0 0 0 3px rgba(43,143,163,0.2);
         }
@@ -426,6 +437,7 @@
             <ul class="menu-itens">
                 <li class="menu-item ativo" data-secao="painel">Painel</li>
                 <li class="menu-item" data-secao="membros">Membros</li>
+                <li class="menu-item" data-secao="visitantes">Visitantes</li>
                 <li class="menu-item" data-secao="aniversariantes">Aniversariantes</li>
                 <li class="menu-item" data-secao="celulas">Células</li>
                 <li class="menu-item" data-secao="ministerios" data-admin hidden>Ministérios</li>
@@ -449,6 +461,10 @@
             <div class="area-conteudo" id="area-conteudo">
                 <!-- Painel -->
                 <div id="painel" class="abas ativa">
+                    <div class="aviso-aprovacao" id="aviso-aprovacao" hidden>
+                        <span id="aviso-aprovacao-texto"></span>
+                        <button class="botao botao-primario botao-pequeno" onclick="app.verAguardando()">Ver cadastros</button>
+                    </div>
                     <div class="painel-cards">
                         <div class="card-total"><h3>Membros Ativos</h3><div class="numero" id="total-ativos">0</div></div>
                         <div class="card-total"><h3>Visitantes</h3><div class="numero" id="total-visitantes">0</div></div>
@@ -483,6 +499,7 @@
                                 <option value="Ativo">Ativo</option>
                                 <option value="Visitante">Visitante</option>
                                 <option value="Inativo">Inativo</option>
+                                <option value="Aguardando aprovação">Aguardando aprovação</option>
                             </select>
                             <select class="select-filtro" id="filtro-ministerio">
                                 <option value="">Todos os ministérios</option>
@@ -505,18 +522,51 @@
                     </div>
                 </div>
 
+                <!-- Visitantes (consolidação) -->
+                <div id="visitantes" class="abas">
+                    <div class="secao-lista">
+                        <h2>Visitantes</h2>
+                        <p class="descricao">Acompanhe cada visitante: status, responsável, último contato e observações. Clique no nome para registrar o acompanhamento.</p>
+                        <div class="busca-filtros">
+                            <input type="text" class="input-busca" id="busca-visitante" placeholder="Buscar por nome">
+                            <select class="select-filtro" id="filtro-acomp">
+                                <option value="">Todos os status</option>
+                                <option value="Novo">Novo</option>
+                                <option value="Em contato">Em contato</option>
+                                <option value="Integrado">Integrado</option>
+                                <option value="Sem retorno">Sem retorno</option>
+                            </select>
+                        </div>
+                        <div class="tabela-container">
+                            <table>
+                                <thead>
+                                    <tr><th>Nome</th><th>Telefone</th><th>Cadastro</th><th>Status</th><th>Responsável</th><th>Último contato</th></tr>
+                                </thead>
+                                <tbody id="tabela-visitantes"></tbody>
+                            </table>
+                        </div>
+                        <div id="mensagem-vazia-visitantes" class="mensagem-vazia"></div>
+                        <div class="paginacao" id="paginacao-visitantes" hidden></div>
+                    </div>
+                </div>
+
                 <!-- Aniversariantes -->
                 <div id="aniversariantes" class="abas">
                     <div class="secao-lista">
                         <h2>Aniversariantes</h2>
                         <div class="busca-filtros">
                             <select class="select-filtro" id="filtro-mes"></select>
+                            <select class="select-filtro" id="filtro-tipo-aniv">
+                                <option value="todos">Todos</option>
+                                <option value="membros">Membros</option>
+                                <option value="visitantes">Visitantes</option>
+                            </select>
                             <button class="botao botao-secundario" data-admin hidden id="btn-exportar-aniversariantes" onclick="app.exportarAniversariantes()">⬇ Exportar Excel</button>
                         </div>
                         <div class="tabela-container">
                             <table>
                                 <thead>
-                                    <tr><th>Nome</th><th>Aniversário (DD/MM)</th><th>Telefone</th><th>Discipulador</th></tr>
+                                    <tr><th>Nome</th><th>Aniversário (DD/MM)</th><th>Telefone</th><th>Situação</th><th>Discipulador</th></tr>
                                 </thead>
                                 <tbody id="tabela-aniversariantes"></tbody>
                             </table>
@@ -621,6 +671,7 @@
                         <h2>Mais opções</h2>
                         <div class="lista-mais">
                             <button class="botao botao-secundario" onclick="app.mudarSecao('celulas')">🏠 Células</button>
+                            <button class="botao botao-secundario" onclick="app.mudarSecao('estatisticas')">📊 Estatísticas</button>
                             <button class="botao botao-secundario" data-admin hidden onclick="app.mudarSecao('ministerios')">🏷️ Ministérios</button>
                             <button class="botao botao-secundario" onclick="app.mudarSecao('lixeira')">🗑️ Lixeira</button>
                             <button class="botao botao-secundario" data-admin hidden onclick="app.mudarSecao('usuarios')">👤 Usuários e acessos</button>
@@ -636,8 +687,8 @@
     <nav class="menu-mobile" id="menu-mobile" hidden>
         <button class="ativo" data-secao="painel"><span class="ico">🏠</span>Painel</button>
         <button data-secao="membros"><span class="ico">👥</span>Membros</button>
+        <button data-secao="visitantes"><span class="ico">🤝</span>Visitantes</button>
         <button data-secao="aniversariantes"><span class="ico">🎂</span>Aniversários</button>
-        <button data-secao="estatisticas"><span class="ico">📊</span>Estatísticas</button>
         <button data-secao="mais"><span class="ico">⋯</span>Mais</button>
     </nav>
 
@@ -672,6 +723,48 @@
                 <div class="botoes-modal">
                     <button type="button" class="botao botao-secundario" onclick="app.fecharNovoUsuario()">Cancelar</button>
                     <button type="submit" class="botao botao-primario" id="btn-criar-usuario">Criar usuário</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Acompanhamento do visitante -->
+    <div class="modal" id="modal-acomp">
+        <div class="modal-conteudo">
+            <div class="modal-header">
+                <h2 id="acomp-titulo">Acompanhamento</h2>
+                <button class="fechar-modal" type="button" onclick="app.fecharAcompanhamento()" aria-label="Fechar">×</button>
+            </div>
+            <div class="ficha-info" id="acomp-info"></div>
+            <form id="form-acomp" onsubmit="app.salvarAcompanhamento(event)" autocomplete="off">
+                <div class="form-linha">
+                    <div class="form-grupo">
+                        <label>Status *</label>
+                        <select id="acomp-status" required>
+                            <option value="Novo">Novo</option>
+                            <option value="Em contato">Em contato</option>
+                            <option value="Integrado">Integrado</option>
+                            <option value="Sem retorno">Sem retorno</option>
+                        </select>
+                    </div>
+                    <div class="form-grupo">
+                        <label>Último contato</label>
+                        <input type="date" id="acomp-ultimo-contato">
+                    </div>
+                </div>
+                <div class="form-grupo">
+                    <label>Responsável pelo acompanhamento</label>
+                    <select id="acomp-responsavel"></select>
+                </div>
+                <div class="form-grupo">
+                    <label>Observações</label>
+                    <textarea id="acomp-observacoes" rows="4" maxlength="2000" placeholder="Anotações sobre os contatos com o visitante"></textarea>
+                </div>
+                <div class="botoes-modal">
+                    <button type="button" class="botao botao-secundario" onclick="app.abrirFichaDoAcompanhamento()">Ver ficha</button>
+                    <button type="button" class="botao botao-secundario" id="btn-tornar-membro" onclick="app.tornarMembro()">Tornar membro</button>
+                    <button type="button" class="botao botao-secundario" onclick="app.fecharAcompanhamento()">Cancelar</button>
+                    <button type="submit" class="botao botao-primario" id="btn-salvar-acomp">Salvar</button>
                 </div>
             </form>
         </div>
@@ -804,6 +897,16 @@
                 </div>
                 <div class="form-linha">
                     <div class="form-grupo">
+                        <label>E-mail</label>
+                        <input type="email" id="form-email" maxlength="120">
+                    </div>
+                    <div class="form-grupo">
+                        <label>Endereço</label>
+                        <input type="text" id="form-endereco" maxlength="200">
+                    </div>
+                </div>
+                <div class="form-linha">
+                    <div class="form-grupo">
                         <label>Discipulador</label>
                         <select id="form-discipulador"></select>
                     </div>
@@ -813,6 +916,7 @@
                             <option value="Ativo">Ativo</option>
                             <option value="Visitante">Visitante</option>
                             <option value="Inativo">Inativo</option>
+                            <option value="Aguardando aprovação">Aguardando aprovação</option>
                         </select>
                     </div>
                 </div>
@@ -838,6 +942,7 @@
                 </div>
 
                 <div class="botoes-modal">
+                    <button type="button" class="botao botao-secundario" id="btn-aprovar" onclick="app.aprovarCadastro()" hidden>Aprovar cadastro</button>
                     <button type="button" class="botao botao-perigo" id="btn-excluir" onclick="app.moverParaLixeira()" hidden>Mover para a lixeira</button>
                     <button type="button" class="botao botao-secundario" onclick="app.fecharModal()">Cancelar</button>
                     <button type="submit" class="botao botao-primario" id="btn-salvar">Salvar</button>
@@ -865,6 +970,8 @@
             nome: 'Nome', telefone: 'Telefone', data_nascimento: 'Nascimento', genero: 'Gênero',
             estado_civil: 'Estado civil', discipulador: 'Discipulador (texto antigo)', discipulador_id: 'Discipulador',
             celula_id: 'Célula', situacao: 'Situação',
+            endereco: 'Endereço', email: 'E-mail', acomp_status: 'Acompanhamento',
+            responsavel_id: 'Responsável', ultimo_contato: 'Último contato',
             ministerio: 'Ministério', data_cadastro: 'Data de cadastro', data_batismo: 'Batismo'
         };
         const ROTULOS_ACOES = {
@@ -904,6 +1011,10 @@
             pagina: 0,
             tokenMembros: 0,
             temporizadorBusca: null,
+            paginaVis: 0,
+            tokenVis: 0,
+            temporizadorBuscaVis: null,
+            visitanteEditando: null,
 
             // ---------- Início e sessão ----------
             async init() {
@@ -1057,6 +1168,12 @@
                 document.getElementById('filtro-situacao').addEventListener('change', () => { this.pagina = 0; this.renderMembros(); });
                 document.getElementById('filtro-ministerio').addEventListener('change', () => { this.pagina = 0; this.renderMembros(); });
                 document.getElementById('filtro-mes').addEventListener('change', () => this.renderAniversariantes());
+                document.getElementById('filtro-tipo-aniv').addEventListener('change', () => this.renderAniversariantes());
+                document.getElementById('busca-visitante').addEventListener('input', () => {
+                    clearTimeout(this.temporizadorBuscaVis);
+                    this.temporizadorBuscaVis = setTimeout(() => { this.paginaVis = 0; this.renderVisitantes(); }, 300);
+                });
+                document.getElementById('filtro-acomp').addEventListener('change', () => { this.paginaVis = 0; this.renderVisitantes(); });
             },
 
             montarFiltroMes() {
@@ -1075,12 +1192,12 @@
                 document.querySelectorAll('[data-secao]').forEach(i => {
                     const alvo = i.getAttribute('data-secao');
                     // no celular, Lixeira e Usuários ficam dentro de "Mais"
-                    const ativo = alvo === secao || (alvo === 'mais' && (secao === 'lixeira' || secao === 'usuarios' || secao === 'celulas' || secao === 'ministerios'));
+                    const ativo = alvo === secao || (alvo === 'mais' && (secao === 'lixeira' || secao === 'usuarios' || secao === 'celulas' || secao === 'ministerios' || secao === 'estatisticas'));
                     if (i.closest('.menu-mobile') || i.classList.contains('menu-item')) i.classList.toggle('ativo', ativo);
                 });
 
                 const titulos = {
-                    painel: 'Painel', membros: 'Membros', aniversariantes: 'Aniversariantes', celulas: 'Células', ministerios: 'Ministérios',
+                    painel: 'Painel', membros: 'Membros', aniversariantes: 'Aniversariantes', visitantes: 'Visitantes', celulas: 'Células', ministerios: 'Ministérios',
                     estatisticas: 'Estatísticas', lixeira: 'Lixeira', usuarios: 'Usuários e acessos', mais: 'Mais'
                 };
                 document.getElementById('titulo-secao').textContent = titulos[secao];
@@ -1093,6 +1210,7 @@
                 if (s === 'painel') this.renderPainel();
                 if (s === 'membros') this.renderMembros();
                 if (s === 'aniversariantes') this.renderAniversariantes();
+                if (s === 'visitantes') this.renderVisitantes();
                 if (s === 'celulas') this.renderCelulas();
                 if (s === 'ministerios') this.renderMinisterios();
                 if (s === 'estatisticas') this.renderEstatisticas();
@@ -1102,7 +1220,7 @@
 
             // ---------- Renderização ----------
             situacaoHtml(situacao) {
-                const cls = { Ativo: 'situacao-ativo', Visitante: 'situacao-visitante', Inativo: 'situacao-inativo' }[situacao] || '';
+                const cls = { Ativo: 'situacao-ativo', Visitante: 'situacao-visitante', Inativo: 'situacao-inativo', 'Aguardando aprovação': 'situacao-aguardando' }[situacao] || '';
                 return `<span class="${cls}">${esc(situacao)}</span>`;
             },
 
@@ -1120,6 +1238,10 @@
                 document.getElementById('total-ativos').textContent = resumo.data.ativos;
                 document.getElementById('total-visitantes').textContent = resumo.data.visitantes;
                 document.getElementById('total-inativos').textContent = resumo.data.inativos;
+                const aguardando = resumo.data.aguardando || 0;
+                document.getElementById('aviso-aprovacao').hidden = aguardando === 0;
+                document.getElementById('aviso-aprovacao-texto').textContent =
+                    `${aguardando} cadastro${aguardando === 1 ? '' : 's'} de membro aguardando aprovação`;
 
                 document.getElementById('tabela-recentes').innerHTML = recentes.data.map(m => `
                     <tr>
@@ -1198,7 +1320,8 @@
 
             async renderAniversariantes() {
                 const mes = parseInt(document.getElementById('filtro-mes').value, 10);
-                const { data, error } = await db.rpc('aniversariantes', { p_mes: mes });
+                const tipo = document.getElementById('filtro-tipo-aniv').value;
+                const { data, error } = await db.rpc('aniversariantes', { p_mes: mes, p_tipo: tipo });
                 if (error) { this.toast('Erro ao carregar os aniversariantes.', true); return; }
 
                 const tbody = document.getElementById('tabela-aniversariantes');
@@ -1218,6 +1341,7 @@
                         <td class="col-nome" data-label="Nome"><span class="nome-clicavel" onclick="app.abrirMembro(${Number(m.id)})">${esc(m.nome)}</span></td>
                         <td data-label="Aniversário">${dia}/${mm}</td>
                         <td data-label="Telefone">${esc(m.telefone) || '—'}</td>
+                        <td data-label="Situação">${this.situacaoHtml(m.situacao)}</td>
                         <td data-label="Discipulador">${esc(m.discipulador) || '—'}</td>
                     </tr>`;
                 }).join('');
@@ -1442,6 +1566,145 @@
                     .map(x => `<option value="${x.id}"${x.id === sel ? ' selected' : ''}>${esc(x.nome)}</option>`).join('');
             },
 
+            // ---------- Visitantes (consolidação) e aprovação de cadastros ----------
+            verAguardando() {
+                document.getElementById('filtro-situacao').value = 'Aguardando aprovação';
+                document.getElementById('busca-nome').value = '';
+                document.getElementById('filtro-ministerio').value = '';
+                this.pagina = 0;
+                this.mudarSecao('membros');
+            },
+
+            async aprovarCadastro() {
+                if (!this.membroEditando) return;
+                const { error } = await db.from('membros').update({ situacao: 'Ativo' }).eq('id', this.membroEditando.id);
+                if (error) { this.toast('Não foi possível aprovar o cadastro.', true); return; }
+                this.fecharModal();
+                this.toast('Cadastro aprovado. A pessoa agora é membro Ativo.');
+                this.renderizarSecaoAtual();
+            },
+
+            async renderVisitantes() {
+                const token = ++this.tokenVis;
+                this.paginaVis = this.paginaVis || 0;
+                const de = this.paginaVis * POR_PAGINA;
+
+                const busca = document.getElementById('busca-visitante').value.trim();
+                const status = document.getElementById('filtro-acomp').value;
+
+                let q = db.from('membros')
+                    .select('id,nome,telefone,data_cadastro,acomp_status,ultimo_contato,resp:responsavel_id(nome)', { count: 'exact' })
+                    .is('excluido_em', null).eq('situacao', 'Visitante');
+                if (busca) q = q.ilike('nome', `%${busca.replace(/[\\%_]/g, '\\$&')}%`);
+                if (status === 'Novo') q = q.or('acomp_status.is.null,acomp_status.eq.Novo');
+                else if (status) q = q.eq('acomp_status', status);
+                q = q.order('data_cadastro', { ascending: false }).order('id', { ascending: false }).range(de, de + POR_PAGINA - 1);
+
+                const { data, error, count } = await q;
+                if (token !== this.tokenVis) return;
+                if (error) {
+                    if (error.code === 'PGRST103' && this.paginaVis > 0) { this.paginaVis = 0; return this.renderVisitantes(); }
+                    this.toast('Erro ao carregar os visitantes.', true);
+                    return;
+                }
+
+                const total = count || 0;
+                const tbody = document.getElementById('tabela-visitantes');
+                const msgVazia = document.getElementById('mensagem-vazia-visitantes');
+                const pag = document.getElementById('paginacao-visitantes');
+                if (data.length === 0) {
+                    tbody.innerHTML = '';
+                    msgVazia.textContent = 'Nenhum visitante encontrado.';
+                    pag.hidden = true;
+                    return;
+                }
+                msgVazia.textContent = '';
+                tbody.innerHTML = data.map(m => `
+                    <tr>
+                        <td class="col-nome" data-label="Nome"><span class="nome-clicavel" onclick="app.abrirAcompanhamento(${Number(m.id)})">${esc(m.nome)}</span></td>
+                        <td data-label="Telefone">${esc(m.telefone) || '—'}</td>
+                        <td data-label="Cadastro">${formatarData(m.data_cadastro)}</td>
+                        <td data-label="Status">${esc(m.acomp_status || 'Novo')}</td>
+                        <td data-label="Responsável">${esc(m.resp && m.resp.nome) || '—'}</td>
+                        <td data-label="Último contato">${m.ultimo_contato ? formatarData(m.ultimo_contato) : '—'}</td>
+                    </tr>`).join('');
+
+                const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA));
+                pag.hidden = false;
+                pag.innerHTML = `
+                    <span>${total} visitante${total === 1 ? '' : 's'} · página ${this.paginaVis + 1} de ${totalPaginas}</span>
+                    <div class="botoes">
+                        <button class="botao botao-secundario botao-pequeno" ${this.paginaVis === 0 ? 'disabled' : ''} onclick="app.mudarPaginaVis(-1)">← Anterior</button>
+                        <button class="botao botao-secundario botao-pequeno" ${this.paginaVis + 1 >= totalPaginas ? 'disabled' : ''} onclick="app.mudarPaginaVis(1)">Próxima →</button>
+                    </div>`;
+            },
+
+            mudarPaginaVis(delta) {
+                this.paginaVis = Math.max(0, (this.paginaVis || 0) + delta);
+                this.renderVisitantes();
+                document.getElementById('area-conteudo').scrollTop = 0;
+            },
+
+            async abrirAcompanhamento(id) {
+                const { data: m, error } = await db.from('membros').select('*').eq('id', id).maybeSingle();
+                if (error || !m) { this.toast('Não foi possível abrir o visitante.', true); return; }
+                if (!(await this.carregarListas())) return;
+
+                this.visitanteEditando = m;
+                document.getElementById('acomp-titulo').textContent = m.nome;
+                document.getElementById('acomp-info').textContent =
+                    [m.telefone ? `Telefone: ${m.telefone}` : null, `Cadastro em ${formatarData(m.data_cadastro)}`].filter(Boolean).join(' · ');
+                document.getElementById('acomp-status').value = m.acomp_status || 'Novo';
+                document.getElementById('acomp-ultimo-contato').value = m.ultimo_contato || '';
+                document.getElementById('acomp-responsavel').innerHTML = this.opcoesMembros(m.responsavel_id, m.id);
+                document.getElementById('acomp-observacoes').value = m.observacoes || '';
+                document.getElementById('modal-acomp').classList.add('aberto');
+            },
+
+            async salvarAcompanhamento(event) {
+                event.preventDefault();
+                if (!this.visitanteEditando) return;
+                const resp = document.getElementById('acomp-responsavel').value;
+                const dados = {
+                    acomp_status: document.getElementById('acomp-status').value,
+                    ultimo_contato: document.getElementById('acomp-ultimo-contato').value || null,
+                    responsavel_id: /^\d+$/.test(resp) ? Number(resp) : null,
+                    observacoes: document.getElementById('acomp-observacoes').value.trim() || null
+                };
+                const btn = document.getElementById('btn-salvar-acomp');
+                btn.disabled = true;
+                const { error } = await db.from('membros').update(dados).eq('id', this.visitanteEditando.id);
+                btn.disabled = false;
+                if (error) { this.toast('Não foi possível salvar o acompanhamento.', true); return; }
+                this.fecharAcompanhamento();
+                this.toast('Acompanhamento salvo.');
+                this.renderizarSecaoAtual();
+            },
+
+            async tornarMembro() {
+                const m = this.visitanteEditando;
+                if (!m) return;
+                if (!confirm(`Tornar ${m.nome} um membro Ativo? Ela(e) sai da lista de visitantes.`)) return;
+                const { error } = await db.from('membros').update({ situacao: 'Ativo', acomp_status: 'Integrado' }).eq('id', m.id);
+                if (error) { this.toast('Não foi possível tornar membro.', true); return; }
+                this.fecharAcompanhamento();
+                this.toast('Visitante agora é membro Ativo.');
+                this.renderizarSecaoAtual();
+            },
+
+            abrirFichaDoAcompanhamento() {
+                const m = this.visitanteEditando;
+                if (!m) return;
+                this.fecharAcompanhamento();
+                this.abrirMembro(m.id);
+            },
+
+            fecharAcompanhamento() {
+                document.getElementById('modal-acomp').classList.remove('aberto');
+                document.getElementById('form-acomp').reset();
+                this.visitanteEditando = null;
+            },
+
             // ---------- Exportar para Excel (somente administrador) ----------
             carregarXlsx() {
                 if (window.XLSX) return Promise.resolve(window.XLSX);
@@ -1500,12 +1763,14 @@
                         (m.celula && m.celula.nome) || '',
                         (m.disc ? m.disc.nome : m.discipulador) || '',
                         m.situacao || '',
-                        m.data_cadastro ? formatarData(m.data_cadastro) : ''
+                        m.data_cadastro ? formatarData(m.data_cadastro) : '',
+                        m.email || '',
+                        m.endereco || ''
                     ]);
                     const ok = await this.baixarPlanilha(
                         `membros-IBO-${hojeISO()}.xlsx`, 'Membros',
-                        ['Nome', 'Telefone', 'Nascimento', 'Ministério', 'Célula', 'Discipulador', 'Situação', 'Cadastro'],
-                        linhas, [34, 16, 12, 20, 22, 28, 12, 12]);
+                        ['Nome', 'Telefone', 'Nascimento', 'Ministério', 'Célula', 'Discipulador', 'Situação', 'Cadastro', 'E-mail', 'Endereço'],
+                        linhas, [34, 16, 12, 20, 22, 28, 20, 12, 30, 40]);
                     if (ok) this.toast(`Planilha gerada com ${todos.length} membro(s).`);
                 } finally {
                     btn.disabled = false;
@@ -1521,7 +1786,8 @@
                 btn.textContent = 'Exportando...';
                 try {
                     const mes = parseInt(document.getElementById('filtro-mes').value, 10);
-                    const { data, error } = await db.rpc('aniversariantes', { p_mes: mes });
+                    const tipo = document.getElementById('filtro-tipo-aniv').value;
+                    const { data, error } = await db.rpc('aniversariantes', { p_mes: mes, p_tipo: tipo });
                     if (error) { this.toast('Não foi possível exportar os aniversariantes.', true); return; }
                     if (data.length === 0) { this.toast('Não há aniversariantes neste mês.', true); return; }
 
@@ -1529,13 +1795,14 @@
                         m.nome || '',
                         `${m.data_nascimento.substring(8, 10)}/${m.data_nascimento.substring(5, 7)}`,
                         m.telefone || '',
+                        m.situacao || '',
                         m.discipulador || ''
                     ]);
                     const nomeMes = MESES[mes - 1];
                     const ok = await this.baixarPlanilha(
                         `aniversariantes-${nomeMes}-IBO.xlsx`, 'Aniversariantes',
-                        ['Nome', 'Aniversário (DD/MM)', 'Telefone', 'Discipulador'],
-                        linhas, [34, 20, 16, 28]);
+                        ['Nome', 'Aniversário (DD/MM)', 'Telefone', 'Situação', 'Discipulador'],
+                        linhas, [34, 20, 16, 20, 28]);
                     if (ok) this.toast(`Planilha gerada com ${data.length} aniversariante(s).`);
                 } finally {
                     btn.disabled = false;
@@ -1751,6 +2018,7 @@
                 document.getElementById('modal-titulo').textContent = 'Novo cadastro';
                 document.getElementById('form-membro').reset();
                 document.getElementById('form-data-cadastro').value = hojeISO();
+                document.getElementById('btn-aprovar').hidden = true;
                 document.getElementById('form-discipulador').innerHTML = this.opcoesMembros(null, null);
                 document.getElementById('form-celula').innerHTML = this.opcoesCelulas(null);
                 document.getElementById('btn-excluir').hidden = true;
@@ -1775,7 +2043,10 @@
                     ? `<option value="__legado" selected>Texto anterior: ${esc(m.discipulador)}</option>` : '';
                 document.getElementById('form-discipulador').innerHTML = this.opcoesMembros(m.discipulador_id, m.id, legado);
                 document.getElementById('form-celula').innerHTML = this.opcoesCelulas(m.celula_id);
+                document.getElementById('form-email').value = m.email || '';
+                document.getElementById('form-endereco').value = m.endereco || '';
                 document.getElementById('form-situacao').value = m.situacao;
+                document.getElementById('btn-aprovar').hidden = m.situacao !== 'Aguardando aprovação';
                 document.getElementById('form-ministerio').value = m.ministerio;
                 document.getElementById('form-data-cadastro').value = m.data_cadastro;
                 document.getElementById('form-data-batismo').value = m.data_batismo || '';
@@ -1825,7 +2096,8 @@
 
             formatarValor(campo, valor) {
                 if (valor === null || valor === undefined || valor === '') return '—';
-                if (['data_nascimento', 'data_cadastro', 'data_batismo'].includes(campo)) return formatarData(valor);
+                if (['data_nascimento', 'data_cadastro', 'data_batismo', 'ultimo_contato'].includes(campo)) return formatarData(valor);
+                if (campo === 'responsavel_id') return esc((this.mapaMembros && this.mapaMembros[valor]) || `cadastro #${valor}`);
                 if (campo === 'celula_id') return esc((this.mapaCelulas && this.mapaCelulas[valor]) || `célula #${valor}`);
                 if (campo === 'discipulador_id') return esc((this.mapaMembros && this.mapaMembros[valor]) || `cadastro #${valor}`);
                 return esc(valor);
@@ -1841,6 +2113,8 @@
                     data_nascimento: v('form-data-nascimento') || null,
                     genero: v('form-genero'),
                     estado_civil: v('form-estado-civil'),
+                    email: v('form-email') || null,
+                    endereco: v('form-endereco') || null,
                     discipulador_id: /^\d+$/.test(disc) ? Number(disc) : null,
                     discipulador: disc === '__legado' && this.membroEditando ? this.membroEditando.discipulador : null,
                     celula_id: v('form-celula') ? Number(v('form-celula')) : null,

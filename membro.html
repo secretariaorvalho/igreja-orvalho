@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Cadastro de Membro - Igreja Batista Orvalho</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --cor-principal: #0d2f38;
+            --cor-accent: #2b8fa3;
+            --cor-fundo: #0a1f26;
+            --cor-card: #1a3a45;
+            --cor-branco: #e8eef2;
+            --cor-texto: #d1d9e0;
+            --cor-texto-luz: #8a95a3;
+            --cor-borda: #2a4a56;
+            --cor-erro: #f87171;
+            --cor-ok: #4ade80;
+        }
+
+        [hidden] { display: none !important; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--cor-fundo);
+            color: var(--cor-texto);
+            min-height: 100vh;
+            padding: 20px 14px 40px;
+        }
+
+        .card {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: 12px;
+            padding: 28px 24px;
+            width: 100%;
+            max-width: 480px;
+            margin: 0 auto;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+
+        .topo { text-align: center; margin-bottom: 24px; }
+        .gota { font-size: 44px; }
+        h1 { font-size: 20px; color: var(--cor-branco); font-weight: 600; margin-top: 6px; }
+        .sub { font-size: 14px; color: var(--cor-texto-luz); margin-top: 6px; line-height: 1.4; }
+
+        .form-grupo { margin-bottom: 18px; }
+        label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--cor-accent); }
+        input[type="text"], input[type="tel"], input[type="email"], input[type="date"], select {
+            width: 100%; padding: 13px 12px; border: 1px solid var(--cor-borda);
+            border-radius: 8px; font-size: 16px; font-family: inherit;
+            background-color: rgba(255,255,255,0.05); color: var(--cor-branco);
+        }
+        select option { background-color: var(--cor-principal); color: var(--cor-branco); }
+        input:focus, select:focus {
+            outline: none; border-color: var(--cor-accent);
+            box-shadow: 0 0 0 3px rgba(43,143,163,0.2);
+        }
+
+        .consentimento {
+            display: flex; gap: 10px; align-items: flex-start;
+            font-size: 13px; line-height: 1.5; color: var(--cor-texto);
+            background: rgba(43,143,163,0.08); border: 1px solid var(--cor-borda);
+            border-radius: 8px; padding: 12px; margin-bottom: 20px;
+        }
+        .consentimento input { margin-top: 3px; width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--cor-accent); }
+
+        .botao {
+            width: 100%; padding: 14px; border: none; border-radius: 8px;
+            font-size: 16px; font-weight: 600; cursor: pointer;
+            background-color: var(--cor-accent); color: var(--cor-branco);
+        }
+        .botao:hover:not(:disabled) { background-color: #24738a; }
+        .botao:disabled { opacity: 0.6; cursor: wait; }
+
+        .msg-erro { color: var(--cor-erro); font-size: 14px; text-align: center; margin-top: 14px; min-height: 20px; }
+
+        .sucesso { text-align: center; padding: 20px 0; }
+        .sucesso .check { font-size: 56px; color: var(--cor-ok); }
+        .sucesso h2 { font-size: 20px; color: var(--cor-branco); margin: 12px 0 8px; }
+        .sucesso p { font-size: 15px; color: var(--cor-texto-luz); line-height: 1.5; }
+        .link-novo { margin-top: 20px; background: none; border: 1px solid var(--cor-borda); color: var(--cor-texto); }
+
+        /* Campo isca contra robôs: invisível para pessoas */
+        .isca { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+        .rodape { text-align: center; font-size: 11px; color: var(--cor-texto-luz); margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="topo">
+            <div class="gota">💧</div>
+            <h1>Igreja Batista Orvalho</h1>
+            <p class="sub">Cadastro de membro. Preencha seus dados; a secretaria vai conferir e confirmar o seu cadastro.</p>
+        </div>
+
+        <form id="form" onsubmit="enviar(event)" novalidate>
+            <div class="form-grupo">
+                <label for="nome">Nome completo *</label>
+                <input type="text" id="nome" maxlength="120" autocomplete="name" required>
+            </div>
+
+            <div class="form-grupo">
+                <label for="telefone">Telefone / WhatsApp</label>
+                <input type="tel" id="telefone" placeholder="(31) 9xxxx-xxxx" maxlength="20" autocomplete="tel" inputmode="tel">
+            </div>
+
+            <div class="form-grupo">
+                <label for="email">E-mail</label>
+                <input type="email" id="email" maxlength="120" autocomplete="email" inputmode="email">
+            </div>
+
+            <div class="form-grupo">
+                <label for="nascimento">Data de nascimento</label>
+                <input type="date" id="nascimento">
+            </div>
+
+            <div class="form-grupo">
+                <label for="genero">Gênero</label>
+                <select id="genero">
+                    <option value="Não informado">Prefiro não informar</option>
+                    <option value="Masculino">Masculino</option>
+                    <option value="Feminino">Feminino</option>
+                    <option value="Outro">Outro</option>
+                </select>
+            </div>
+
+            <div class="form-grupo">
+                <label for="estado-civil">Estado civil</label>
+                <select id="estado-civil">
+                    <option value="Não informado">Prefiro não informar</option>
+                    <option value="Solteiro(a)">Solteiro(a)</option>
+                    <option value="Casado(a)">Casado(a)</option>
+                    <option value="União estável">União estável</option>
+                    <option value="Separado(a)">Separado(a)</option>
+                    <option value="Divorciado(a)">Divorciado(a)</option>
+                    <option value="Viúvo(a)">Viúvo(a)</option>
+                </select>
+            </div>
+
+            <div class="form-grupo">
+                <label for="endereco">Endereço</label>
+                <input type="text" id="endereco" maxlength="200" autocomplete="street-address" placeholder="Rua, número, bairro, cidade">
+            </div>
+
+            <div class="form-grupo">
+                <label for="batismo">Data de batismo (se for batizado)</label>
+                <input type="date" id="batismo">
+            </div>
+
+            <!-- Isca anti-robô -->
+            <div class="isca" aria-hidden="true">
+                <label for="site">Não preencha este campo</label>
+                <input type="text" id="site" tabindex="-1" autocomplete="off">
+            </div>
+
+            <label class="consentimento">
+                <input type="checkbox" id="consentimento">
+                <span>Autorizo a Igreja Batista Orvalho a guardar e usar meus dados (inclusive endereço e e-mail) para fins de cadastro de membro e contato da igreja, conforme a LGPD. Posso pedir a correção ou exclusão dos meus dados a qualquer momento na secretaria.</span>
+            </label>
+
+            <button type="submit" class="botao" id="btn-enviar">Enviar cadastro</button>
+            <div class="msg-erro" id="erro" role="alert"></div>
+        </form>
+
+        <div class="sucesso" id="sucesso" hidden>
+            <div class="check">✓</div>
+            <h2>Cadastro enviado!</h2>
+            <p>Obrigado! A nossa secretaria vai conferir os seus dados e confirmar o seu cadastro. Deus abençoe!</p>
+            <button type="button" class="botao link-novo" onclick="novoCadastro()">Fazer outro cadastro</button>
+        </div>
+
+        <p class="rodape">Seus dados ficam protegidos e só a secretaria da igreja tem acesso.</p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // A chave publishable é pública; este formulário só consegue INSERIR (regra RLS no banco)
+        const SUPABASE_URL = 'https://vjctainlubvwtwbonwbu.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_qPHYcnc4MNcXDzkrcB39Kg_XhYD-OMr';
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const INTERVALO_MIN_MS = 30000; // 30s entre envios do mesmo aparelho
+
+        // Versão do termo de consentimento exibido nesta página.
+        // Se o texto do termo mudar, altere esta versão (ex.: '2027-01-v2').
+        const TERMO_VERSAO = '2026-11-v1-membro';
+
+        function hojeISO() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+
+        function ultimoEnvio() {
+            try { return parseInt(localStorage.getItem('ibo_ultimo_envio') || '0', 10); } catch (e) { return 0; }
+        }
+        function marcarEnvio() {
+            try { localStorage.setItem('ibo_ultimo_envio', String(Date.now())); } catch (e) {}
+        }
+
+        async function enviar(event) {
+            event.preventDefault();
+            const erro = document.getElementById('erro');
+            erro.textContent = '';
+
+            // Robôs preenchem o campo isca: finge sucesso e não envia nada
+            if (document.getElementById('site').value) {
+                mostrarSucesso();
+                return;
+            }
+
+            const nome = document.getElementById('nome').value.trim();
+            if (nome.length < 2) {
+                erro.textContent = 'Informe seu nome completo.';
+                return;
+            }
+            const email = document.getElementById('email').value.trim();
+            if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                erro.textContent = 'Confira o e-mail digitado.';
+                return;
+            }
+            if (!document.getElementById('consentimento').checked) {
+                erro.textContent = 'Marque a autorização para enviar o cadastro.';
+                return;
+            }
+            if (Date.now() - ultimoEnvio() < INTERVALO_MIN_MS) {
+                erro.textContent = 'Aguarde alguns segundos antes de enviar novamente.';
+                return;
+            }
+
+            const btn = document.getElementById('btn-enviar');
+            btn.disabled = true;
+            btn.textContent = 'Enviando...';
+
+            const { error } = await db.from('membros').insert({
+                nome,
+                telefone: document.getElementById('telefone').value.trim() || null,
+                data_nascimento: document.getElementById('nascimento').value || null,
+                genero: document.getElementById('genero').value,
+                estado_civil: document.getElementById('estado-civil').value,
+                email: email || null,
+                endereco: document.getElementById('endereco').value.trim() || null,
+                data_batismo: document.getElementById('batismo').value || null,
+                situacao: 'Aguardando aprovação', // a secretaria confere e aprova no painel
+                ministerio: 'Nenhum',
+                data_cadastro: hojeISO(),
+                consentimento_versao: TERMO_VERSAO // o servidor carimba a data e hora do aceite
+            });
+
+            btn.disabled = false;
+            btn.textContent = 'Enviar cadastro';
+
+            if (error) {
+                erro.textContent = 'Não foi possível enviar agora. Tente novamente em instantes.';
+                return;
+            }
+            marcarEnvio();
+            mostrarSucesso();
+        }
+
+        function mostrarSucesso() {
+            document.getElementById('form').hidden = true;
+            document.getElementById('sucesso').hidden = false;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function novoCadastro() {
+            document.getElementById('form').reset();
+            document.getElementById('form').hidden = false;
+            document.getElementById('sucesso').hidden = true;
+        }
+    </script>
+</body>
+</html>
