@@ -568,7 +568,8 @@
                 <div id="usuarios" class="abas">
                     <div class="secao-lista">
                         <h2>Usuários e acessos</h2>
-                        <p class="descricao">Para criar um novo usuário: no Supabase, vá em Authentication, Users, Add user. Ele aparecerá aqui como "Sem acesso" até você liberar.</p>
+                        <p class="descricao">Crie a conta da pessoa aqui, com uma senha provisória, e passe o e-mail e a senha para ela. Depois ela pode trocar a senha em "Esqueci minha senha".</p>
+                        <div style="margin-bottom:16px"><button class="botao botao-primario" onclick="app.abrirNovoUsuario()">+ Novo usuário</button></div>
                         <div class="tabela-container">
                             <table>
                                 <thead>
@@ -604,6 +605,38 @@
         <button data-secao="estatisticas"><span class="ico">📊</span>Estatísticas</button>
         <button data-secao="mais"><span class="ico">⋯</span>Mais</button>
     </nav>
+
+
+    <!-- Novo usuário (administrador) -->
+    <div class="modal" id="modal-usuario">
+        <div class="modal-conteudo">
+            <div class="modal-header">
+                <h2>Novo usuário</h2>
+                <button class="fechar-modal" type="button" onclick="app.fecharNovoUsuario()" aria-label="Fechar">×</button>
+            </div>
+            <form id="form-usuario" onsubmit="app.criarUsuario(event)" autocomplete="off">
+                <div class="form-grupo">
+                    <label>E-mail *</label>
+                    <input type="email" id="usuario-email" required maxlength="200" autocomplete="off">
+                </div>
+                <div class="form-grupo">
+                    <label>Senha provisória * (mínimo 8 caracteres)</label>
+                    <input type="text" id="usuario-senha" required minlength="8" maxlength="72" autocomplete="off">
+                </div>
+                <div class="form-grupo">
+                    <label>Acesso *</label>
+                    <select id="usuario-papel">
+                        <option value="secretaria">Secretaria</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                </div>
+                <div class="botoes-modal">
+                    <button type="button" class="botao botao-secundario" onclick="app.fecharNovoUsuario()">Cancelar</button>
+                    <button type="submit" class="botao botao-primario" id="btn-criar-usuario">Criar usuário</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- Ficha do membro -->
     <div class="modal" id="modal-membro">
@@ -1164,6 +1197,47 @@
                 if (error) { this.toast('Não foi possível alterar o acesso.', true); return; }
                 this.toast('Acesso atualizado.');
                 this.renderUsuarios();
+            },
+
+            abrirNovoUsuario() {
+                document.getElementById('form-usuario').reset();
+                document.getElementById('modal-usuario').classList.add('aberto');
+            },
+
+            fecharNovoUsuario() {
+                document.getElementById('modal-usuario').classList.remove('aberto');
+                document.getElementById('form-usuario').reset();
+            },
+
+            async criarUsuario(e) {
+                e.preventDefault();
+                if (!this.perfil || this.perfil.papel !== 'admin') return;
+                const btn = document.getElementById('btn-criar-usuario');
+                btn.disabled = true;
+                try {
+                    const { data, error } = await db.functions.invoke('criar-usuario', {
+                        body: {
+                            email: document.getElementById('usuario-email').value.trim(),
+                            senha: document.getElementById('usuario-senha').value,
+                            papel: document.getElementById('usuario-papel').value
+                        }
+                    });
+                    if (error) {
+                        let msg = 'Não foi possível criar o usuário.';
+                        try {
+                            const corpo = await error.context.json();
+                            if (corpo && corpo.erro) msg = corpo.erro;
+                        } catch (_) { /* mantém a mensagem padrão */ }
+                        this.toast(msg, true);
+                        return;
+                    }
+                    if (!data || !data.ok) { this.toast('Não foi possível criar o usuário.', true); return; }
+                    this.fecharNovoUsuario();
+                    this.toast('Usuário criado. Passe o e-mail e a senha para a pessoa.');
+                    this.renderUsuarios();
+                } finally {
+                    btn.disabled = false;
+                }
             },
 
             async restaurar(id) {
