@@ -427,6 +427,7 @@
                 <li class="menu-item ativo" data-secao="painel">Painel</li>
                 <li class="menu-item" data-secao="membros">Membros</li>
                 <li class="menu-item" data-secao="aniversariantes">Aniversariantes</li>
+                <li class="menu-item" data-secao="celulas">Células</li>
                 <li class="menu-item" data-secao="estatisticas">Estatísticas</li>
                 <li class="menu-separador"></li>
                 <li class="menu-item" data-secao="lixeira">Lixeira</li>
@@ -497,7 +498,7 @@
                                 <thead>
                                     <tr>
                                         <th>Nome</th><th>Telefone</th><th>Data de Nascimento</th>
-                                        <th>Ministério</th><th>Cadastro</th><th>Discipulador</th><th>Situação</th>
+                                        <th>Ministério</th><th>Cadastro</th><th>Célula</th><th>Discipulador</th><th>Situação</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tabela-membros"></tbody>
@@ -564,6 +565,23 @@
                     </div>
                 </div>
 
+                <!-- Células -->
+                <div id="celulas" class="abas">
+                    <div class="secao-lista">
+                        <h2>Células</h2>
+                        <div style="margin-bottom:16px"><button class="botao botao-primario" onclick="app.abrirNovaCelula()">+ Nova célula</button></div>
+                        <div class="tabela-container">
+                            <table>
+                                <thead>
+                                    <tr><th>Nome</th><th>Dia e horário</th><th>Endereço</th><th>Líder</th><th>Vice-líder</th><th>Anfitrião</th><th>Membros</th></tr>
+                                </thead>
+                                <tbody id="tabela-celulas"></tbody>
+                            </table>
+                        </div>
+                        <div id="mensagem-vazia-celulas" class="mensagem-vazia"></div>
+                    </div>
+                </div>
+
                 <!-- Usuários e acessos (administrador) -->
                 <div id="usuarios" class="abas">
                     <div class="secao-lista">
@@ -573,7 +591,7 @@
                         <div class="tabela-container">
                             <table>
                                 <thead>
-                                    <tr><th>E-mail</th><th>Acesso</th><th>Ações</th></tr>
+                                    <tr><th>Nome</th><th>E-mail</th><th>Acesso</th><th>Ações</th></tr>
                                 </thead>
                                 <tbody id="tabela-usuarios"></tbody>
                             </table>
@@ -587,6 +605,7 @@
                     <div class="secao-lista">
                         <h2>Mais opções</h2>
                         <div class="lista-mais">
+                            <button class="botao botao-secundario" onclick="app.mudarSecao('celulas')">🏠 Células</button>
                             <button class="botao botao-secundario" onclick="app.mudarSecao('lixeira')">🗑️ Lixeira</button>
                             <button class="botao botao-secundario" data-admin hidden onclick="app.mudarSecao('usuarios')">👤 Usuários e acessos</button>
                             <button class="botao botao-secundario" onclick="app.sair()">🚪 Sair</button>
@@ -616,6 +635,10 @@
             </div>
             <form id="form-usuario" onsubmit="app.criarUsuario(event)" autocomplete="off">
                 <div class="form-grupo">
+                    <label>Nome *</label>
+                    <input type="text" id="usuario-nome" required minlength="2" maxlength="120" autocomplete="off">
+                </div>
+                <div class="form-grupo">
                     <label>E-mail *</label>
                     <input type="email" id="usuario-email" required maxlength="200" autocomplete="off">
                 </div>
@@ -633,6 +656,62 @@
                 <div class="botoes-modal">
                     <button type="button" class="botao botao-secundario" onclick="app.fecharNovoUsuario()">Cancelar</button>
                     <button type="submit" class="botao botao-primario" id="btn-criar-usuario">Criar usuário</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Célula -->
+    <div class="modal" id="modal-celula">
+        <div class="modal-conteudo">
+            <div class="modal-header">
+                <h2 id="modal-celula-titulo">Nova célula</h2>
+                <button class="fechar-modal" type="button" onclick="app.fecharModalCelula()" aria-label="Fechar">×</button>
+            </div>
+            <form id="form-celula-dados" onsubmit="app.salvarCelula(event)" autocomplete="off">
+                <div class="form-grupo">
+                    <label>Nome da célula *</label>
+                    <input type="text" id="celula-nome" required minlength="2" maxlength="120">
+                </div>
+                <div class="form-grupo">
+                    <label>Endereço</label>
+                    <input type="text" id="celula-endereco" maxlength="200">
+                </div>
+                <div class="form-linha">
+                    <div class="form-grupo">
+                        <label>Dia</label>
+                        <select id="celula-dia">
+                            <option value="">Não definido</option>
+                            <option>Domingo</option>
+                            <option>Segunda-feira</option>
+                            <option>Terça-feira</option>
+                            <option>Quarta-feira</option>
+                            <option>Quinta-feira</option>
+                            <option>Sexta-feira</option>
+                            <option>Sábado</option>
+                        </select>
+                    </div>
+                    <div class="form-grupo">
+                        <label>Horário</label>
+                        <input type="time" id="celula-horario">
+                    </div>
+                </div>
+                <div class="form-grupo">
+                    <label>Líder</label>
+                    <select id="celula-lider"></select>
+                </div>
+                <div class="form-grupo">
+                    <label>Vice-líder</label>
+                    <select id="celula-vice"></select>
+                </div>
+                <div class="form-grupo">
+                    <label>Anfitrião</label>
+                    <select id="celula-anfitriao"></select>
+                </div>
+                <div class="botoes-modal">
+                    <button type="button" class="botao botao-perigo" id="btn-excluir-celula" onclick="app.excluirCelula()" hidden>Excluir célula</button>
+                    <button type="button" class="botao botao-secundario" onclick="app.fecharModalCelula()">Cancelar</button>
+                    <button type="submit" class="botao botao-primario" id="btn-salvar-celula">Salvar</button>
                 </div>
             </form>
         </div>
@@ -689,7 +768,7 @@
                 <div class="form-linha">
                     <div class="form-grupo">
                         <label>Discipulador</label>
-                        <input type="text" id="form-discipulador" placeholder="Nome de quem acompanha" maxlength="120">
+                        <select id="form-discipulador"></select>
                     </div>
                     <div class="form-grupo">
                         <label>Situação *</label>
@@ -699,6 +778,10 @@
                             <option value="Inativo">Inativo</option>
                         </select>
                     </div>
+                </div>
+                <div class="form-grupo">
+                    <label>Célula</label>
+                    <select id="form-celula"></select>
                 </div>
                 <div class="form-linha">
                     <div class="form-grupo">
@@ -748,7 +831,8 @@
         const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
         const ROTULOS_CAMPOS = {
             nome: 'Nome', telefone: 'Telefone', data_nascimento: 'Nascimento', genero: 'Gênero',
-            estado_civil: 'Estado civil', discipulador: 'Discipulador', situacao: 'Situação',
+            estado_civil: 'Estado civil', discipulador: 'Discipulador (texto antigo)', discipulador_id: 'Discipulador',
+            celula_id: 'Célula', situacao: 'Situação',
             ministerio: 'Ministério', data_cadastro: 'Data de cadastro', data_batismo: 'Batismo'
         };
         const ROTULOS_ACOES = {
@@ -835,16 +919,16 @@
                 if (!usuario) { this.mostrarTela('login'); return; }
 
                 const { data: perfil, error } = await db
-                    .from('perfis').select('papel').eq('user_id', usuario.id).maybeSingle();
+                    .from('perfis').select('papel,nome').eq('user_id', usuario.id).maybeSingle();
 
                 if (error || !perfil || perfil.papel === 'pendente') {
                     this.mostrarTela('pendente');
                     return;
                 }
 
-                this.perfil = { id: usuario.id, email: usuario.email, papel: perfil.papel };
+                this.perfil = { id: usuario.id, email: usuario.email, papel: perfil.papel, nome: perfil.nome };
                 document.querySelectorAll('[data-admin]').forEach(el => { el.hidden = this.perfil.papel !== 'admin'; });
-                document.getElementById('menu-rodape').textContent = `${usuario.email} · ${ROTULOS_PAPEL[perfil.papel]}`;
+                document.getElementById('menu-rodape').textContent = `${perfil.nome ? perfil.nome + ' · ' : ''}${usuario.email} · ${ROTULOS_PAPEL[perfil.papel]}`;
 
                 this.mostrarTela('app');
                 this.mudarSecao('painel');
@@ -958,12 +1042,12 @@
                 document.querySelectorAll('[data-secao]').forEach(i => {
                     const alvo = i.getAttribute('data-secao');
                     // no celular, Lixeira e Usuários ficam dentro de "Mais"
-                    const ativo = alvo === secao || (alvo === 'mais' && (secao === 'lixeira' || secao === 'usuarios'));
+                    const ativo = alvo === secao || (alvo === 'mais' && (secao === 'lixeira' || secao === 'usuarios' || secao === 'celulas'));
                     if (i.closest('.menu-mobile') || i.classList.contains('menu-item')) i.classList.toggle('ativo', ativo);
                 });
 
                 const titulos = {
-                    painel: 'Painel', membros: 'Membros', aniversariantes: 'Aniversariantes',
+                    painel: 'Painel', membros: 'Membros', aniversariantes: 'Aniversariantes', celulas: 'Células',
                     estatisticas: 'Estatísticas', lixeira: 'Lixeira', usuarios: 'Usuários e acessos', mais: 'Mais'
                 };
                 document.getElementById('titulo-secao').textContent = titulos[secao];
@@ -976,6 +1060,7 @@
                 if (s === 'painel') this.renderPainel();
                 if (s === 'membros') this.renderMembros();
                 if (s === 'aniversariantes') this.renderAniversariantes();
+                if (s === 'celulas') this.renderCelulas();
                 if (s === 'estatisticas') this.renderEstatisticas();
                 if (s === 'lixeira') this.renderLixeira();
                 if (s === 'usuarios') this.renderUsuarios();
@@ -1022,7 +1107,7 @@
                 const situacao = document.getElementById('filtro-situacao').value;
                 const ministerio = document.getElementById('filtro-ministerio').value;
 
-                let q = db.from('membros').select('*', { count: 'exact' }).is('excluido_em', null);
+                let q = db.from('membros').select('*, disc:discipulador_id(nome), celula:celula_id(nome)', { count: 'exact' }).is('excluido_em', null);
                 if (busca) q = q.ilike('nome', `%${busca.replace(/[\\%_]/g, '\\$&')}%`);
                 if (situacao) q = q.eq('situacao', situacao);
                 if (ministerio) q = q.eq('ministerio', ministerio);
@@ -1056,7 +1141,8 @@
                         <td data-label="Nascimento">${formatarData(m.data_nascimento)}</td>
                         <td data-label="Ministério">${esc(m.ministerio)}</td>
                         <td data-label="Cadastro">${formatarData(m.data_cadastro)}</td>
-                        <td data-label="Discipulador">${esc(m.discipulador) || '—'}</td>
+                        <td data-label="Célula">${esc(m.celula && m.celula.nome) || '—'}</td>
+                        <td data-label="Discipulador">${esc(m.disc ? m.disc.nome : m.discipulador) || '—'}</td>
                         <td data-label="Situação">${this.situacaoHtml(m.situacao)}</td>
                     </tr>`).join('');
 
@@ -1161,7 +1247,7 @@
             },
 
             async renderUsuarios() {
-                const { data, error } = await db.from('perfis').select('user_id,email,papel').order('email');
+                const { data, error } = await db.from('perfis').select('user_id,email,papel,nome').order('email');
                 if (error) { this.toast('Erro ao carregar os usuários.', true); return; }
 
                 const tbody = document.getElementById('tabela-usuarios');
@@ -1177,25 +1263,36 @@
                     const euMesmo = u.user_id === this.perfil.id;
                     return `
                     <tr>
-                        <td class="col-nome" data-label="E-mail">${esc(u.email)}${euMesmo ? ' (você)' : ''}</td>
+                        <td class="col-nome" data-label="Nome">
+                            <input type="text" class="select-filtro" id="nome-${esc(u.user_id)}" value="${esc(u.nome)}" maxlength="120" placeholder="Sem nome">
+                        </td>
+                        <td data-label="E-mail">${esc(u.email)}${euMesmo ? ' (você)' : ''}</td>
                         <td data-label="Acesso">
                             <select class="select-filtro" id="papel-${esc(u.user_id)}" ${euMesmo ? 'disabled' : ''}>
                                 ${Object.keys(ROTULOS_PAPEL).map(p => `<option value="${p}"${p === u.papel ? ' selected' : ''}>${ROTULOS_PAPEL[p]}</option>`).join('')}
                             </select>
                         </td>
                         <td data-label="Ações">
-                            ${euMesmo ? '—' : `<button class="botao botao-primario botao-pequeno" onclick="app.salvarPapel('${esc(u.user_id)}')">Salvar</button>`}
+                            <button class="botao botao-primario botao-pequeno" onclick="app.salvarUsuario('${esc(u.user_id)}', ${euMesmo})">Salvar</button>
                         </td>
                     </tr>`;
                 }).join('');
             },
 
             // ---------- Ações de usuários e lixeira ----------
-            async salvarPapel(userId) {
-                const papel = document.getElementById(`papel-${userId}`).value;
-                const { error } = await db.from('perfis').update({ papel }).eq('user_id', userId);
-                if (error) { this.toast('Não foi possível alterar o acesso.', true); return; }
-                this.toast('Acesso atualizado.');
+            async salvarUsuario(userId, euMesmo) {
+                const nome = document.getElementById(`nome-${userId}`).value.trim();
+                if (nome.length > 120) { this.toast('O nome pode ter no máximo 120 caracteres.', true); return; }
+                const dados = { nome: nome || null };
+                if (!euMesmo) dados.papel = document.getElementById(`papel-${userId}`).value;
+                const { error } = await db.from('perfis').update(dados).eq('user_id', userId);
+                if (error) { this.toast('Não foi possível salvar o usuário.', true); return; }
+                if (euMesmo) {
+                    this.perfil.nome = dados.nome;
+                    document.getElementById('menu-rodape').textContent =
+                        `${dados.nome ? dados.nome + ' · ' : ''}${this.perfil.email} · ${ROTULOS_PAPEL[this.perfil.papel]}`;
+                }
+                this.toast('Usuário atualizado.');
                 this.renderUsuarios();
             },
 
@@ -1217,6 +1314,7 @@
                 try {
                     const { data, error } = await db.functions.invoke('criar-usuario', {
                         body: {
+                            nome: document.getElementById('usuario-nome').value.trim(),
                             email: document.getElementById('usuario-email').value.trim(),
                             senha: document.getElementById('usuario-senha').value,
                             papel: document.getElementById('usuario-papel').value
@@ -1255,12 +1353,160 @@
                 this.renderLixeira();
             },
 
+            // ---------- Listas de apoio (membros e células) ----------
+            async carregarListas() {
+                const [m, c] = await Promise.all([
+                    db.from('membros').select('id,nome,telefone').is('excluido_em', null).order('nome').limit(1000),
+                    db.from('celulas').select('id,nome').order('nome')
+                ]);
+                if (m.error || c.error) { this.toast('Não foi possível carregar as listas.', true); return false; }
+
+                const repetidos = {};
+                m.data.forEach(x => { const k = x.nome.trim().toLowerCase(); repetidos[k] = (repetidos[k] || 0) + 1; });
+                this.listaMembros = m.data.map(x => ({
+                    id: x.id,
+                    rotulo: repetidos[x.nome.trim().toLowerCase()] > 1 ? `${x.nome} · ${x.telefone || 'sem telefone'}` : x.nome
+                }));
+                this.listaCelulas = c.data;
+                this.mapaMembros = {}; this.listaMembros.forEach(x => { this.mapaMembros[x.id] = x.rotulo; });
+                this.mapaCelulas = {}; c.data.forEach(x => { this.mapaCelulas[x.id] = x.nome; });
+                return true;
+            },
+
+            opcoesMembros(selecionado, ignorarId, extra = '') {
+                const sel = selecionado ? Number(selecionado) : null;
+                let html = `<option value="">Nenhum</option>${extra}`;
+                if (sel && !this.mapaMembros[sel]) html += `<option value="${sel}" selected>Cadastro na lixeira (#${sel})</option>`;
+                html += this.listaMembros.filter(x => x.id !== ignorarId)
+                    .map(x => `<option value="${x.id}"${x.id === sel ? ' selected' : ''}>${esc(x.rotulo)}</option>`).join('');
+                return html;
+            },
+
+            opcoesCelulas(selecionado) {
+                const sel = selecionado ? Number(selecionado) : null;
+                return '<option value="">Sem célula</option>' + this.listaCelulas
+                    .map(x => `<option value="${x.id}"${x.id === sel ? ' selected' : ''}>${esc(x.nome)}</option>`).join('');
+            },
+
+            // ---------- Células ----------
+            async renderCelulas() {
+                const { data, error } = await db.from('celulas')
+                    .select('*, lider:lider_id(nome), vice:vice_lider_id(nome), anfitriao:anfitriao_id(nome)')
+                    .order('nome');
+                if (error) { this.toast('Erro ao carregar as células.', true); return; }
+
+                const tbody = document.getElementById('tabela-celulas');
+                const msgVazia = document.getElementById('mensagem-vazia-celulas');
+                if (data.length === 0) {
+                    tbody.innerHTML = '';
+                    msgVazia.textContent = 'Nenhuma célula cadastrada ainda.';
+                    return;
+                }
+                msgVazia.textContent = '';
+
+                const contagens = await Promise.all(data.map(c =>
+                    db.from('membros').select('id', { count: 'exact', head: true }).eq('celula_id', c.id).is('excluido_em', null)));
+                if (this.secaoAtual !== 'celulas') return;
+
+                tbody.innerHTML = data.map((c, i) => {
+                    const quando = [c.dia, c.horario ? c.horario.substring(0, 5) : ''].filter(Boolean).join(' às ');
+                    return `
+                    <tr>
+                        <td class="col-nome" data-label="Nome"><span class="nome-clicavel" onclick="app.abrirCelula(${Number(c.id)})">${esc(c.nome)}</span></td>
+                        <td data-label="Dia e horário">${esc(quando) || '—'}</td>
+                        <td data-label="Endereço">${esc(c.endereco) || '—'}</td>
+                        <td data-label="Líder">${esc(c.lider && c.lider.nome) || '—'}</td>
+                        <td data-label="Vice-líder">${esc(c.vice && c.vice.nome) || '—'}</td>
+                        <td data-label="Anfitrião">${esc(c.anfitriao && c.anfitriao.nome) || '—'}</td>
+                        <td data-label="Membros">${contagens[i].count ?? 0}</td>
+                    </tr>`;
+                }).join('');
+            },
+
+            async abrirNovaCelula() {
+                if (!(await this.carregarListas())) return;
+                this.celulaEditando = null;
+                document.getElementById('modal-celula-titulo').textContent = 'Nova célula';
+                document.getElementById('form-celula-dados').reset();
+                ['celula-lider', 'celula-vice', 'celula-anfitriao'].forEach(id => {
+                    document.getElementById(id).innerHTML = this.opcoesMembros(null, null);
+                });
+                document.getElementById('btn-excluir-celula').hidden = true;
+                document.getElementById('modal-celula').classList.add('aberto');
+            },
+
+            async abrirCelula(id) {
+                const { data: c, error } = await db.from('celulas').select('*').eq('id', id).maybeSingle();
+                if (error || !c) { this.toast('Não foi possível abrir a célula.', true); return; }
+                if (!(await this.carregarListas())) return;
+
+                this.celulaEditando = c;
+                document.getElementById('modal-celula-titulo').textContent = 'Editar célula';
+                document.getElementById('celula-nome').value = c.nome;
+                document.getElementById('celula-endereco').value = c.endereco || '';
+                document.getElementById('celula-dia').value = c.dia || '';
+                document.getElementById('celula-horario').value = c.horario ? c.horario.substring(0, 5) : '';
+                document.getElementById('celula-lider').innerHTML = this.opcoesMembros(c.lider_id, null);
+                document.getElementById('celula-vice').innerHTML = this.opcoesMembros(c.vice_lider_id, null);
+                document.getElementById('celula-anfitriao').innerHTML = this.opcoesMembros(c.anfitriao_id, null);
+                document.getElementById('btn-excluir-celula').hidden = false;
+                document.getElementById('modal-celula').classList.add('aberto');
+            },
+
+            async salvarCelula(event) {
+                event.preventDefault();
+                const v = id => document.getElementById(id).value.trim();
+                const num = id => { const x = v(id); return x ? Number(x) : null; };
+                const dados = {
+                    nome: v('celula-nome'),
+                    endereco: v('celula-endereco') || null,
+                    dia: v('celula-dia') || null,
+                    horario: v('celula-horario') || null,
+                    lider_id: num('celula-lider'),
+                    vice_lider_id: num('celula-vice'),
+                    anfitriao_id: num('celula-anfitriao')
+                };
+
+                const btn = document.getElementById('btn-salvar-celula');
+                btn.disabled = true;
+                btn.textContent = 'Salvando...';
+                const { error } = this.celulaEditando
+                    ? await db.from('celulas').update(dados).eq('id', this.celulaEditando.id)
+                    : await db.from('celulas').insert(dados);
+                btn.disabled = false;
+                btn.textContent = 'Salvar';
+
+                if (error) { this.toast('Não foi possível salvar a célula. Verifique os dados.', true); return; }
+                this.fecharModalCelula();
+                this.toast('Célula salva.');
+                this.renderizarSecaoAtual();
+            },
+
+            async excluirCelula() {
+                if (!this.celulaEditando) return;
+                if (!confirm(`Excluir a célula "${this.celulaEditando.nome}"? Os membros ligados a ela ficarão sem célula.`)) return;
+                const { error } = await db.from('celulas').delete().eq('id', this.celulaEditando.id);
+                if (error) { this.toast('Não foi possível excluir a célula.', true); return; }
+                this.fecharModalCelula();
+                this.toast('Célula excluída.');
+                this.renderizarSecaoAtual();
+            },
+
+            fecharModalCelula() {
+                document.getElementById('modal-celula').classList.remove('aberto');
+                document.getElementById('form-celula-dados').reset();
+                this.celulaEditando = null;
+            },
+
             // ---------- Ficha ----------
-            abrirNovoMembro() {
+            async abrirNovoMembro() {
+                if (!(await this.carregarListas())) return;
                 this.membroEditando = null;
                 document.getElementById('modal-titulo').textContent = 'Novo cadastro';
                 document.getElementById('form-membro').reset();
                 document.getElementById('form-data-cadastro').value = hojeISO();
+                document.getElementById('form-discipulador').innerHTML = this.opcoesMembros(null, null);
+                document.getElementById('form-celula').innerHTML = this.opcoesCelulas(null);
                 document.getElementById('btn-excluir').hidden = true;
                 document.getElementById('ficha-info').hidden = true;
                 document.getElementById('historico').hidden = true;
@@ -1270,6 +1516,7 @@
             async abrirMembro(id) {
                 const { data: m, error } = await db.from('membros').select('*').eq('id', id).maybeSingle();
                 if (error || !m) { this.toast('Não foi possível abrir o cadastro.', true); return; }
+                if (!(await this.carregarListas())) return;
 
                 this.membroEditando = m;
                 document.getElementById('modal-titulo').textContent = 'Editar cadastro';
@@ -1278,7 +1525,10 @@
                 document.getElementById('form-data-nascimento').value = m.data_nascimento || '';
                 document.getElementById('form-genero').value = m.genero;
                 document.getElementById('form-estado-civil').value = m.estado_civil;
-                document.getElementById('form-discipulador').value = m.discipulador || '';
+                const legado = (!m.discipulador_id && m.discipulador)
+                    ? `<option value="__legado" selected>Texto anterior: ${esc(m.discipulador)}</option>` : '';
+                document.getElementById('form-discipulador').innerHTML = this.opcoesMembros(m.discipulador_id, m.id, legado);
+                document.getElementById('form-celula').innerHTML = this.opcoesCelulas(m.celula_id);
                 document.getElementById('form-situacao').value = m.situacao;
                 document.getElementById('form-ministerio').value = m.ministerio;
                 document.getElementById('form-data-cadastro').value = m.data_cadastro;
@@ -1330,19 +1580,24 @@
             formatarValor(campo, valor) {
                 if (valor === null || valor === undefined || valor === '') return '—';
                 if (['data_nascimento', 'data_cadastro', 'data_batismo'].includes(campo)) return formatarData(valor);
+                if (campo === 'celula_id') return esc((this.mapaCelulas && this.mapaCelulas[valor]) || `célula #${valor}`);
+                if (campo === 'discipulador_id') return esc((this.mapaMembros && this.mapaMembros[valor]) || `cadastro #${valor}`);
                 return esc(valor);
             },
 
             async salvarMembro(event) {
                 event.preventDefault();
                 const v = id => document.getElementById(id).value.trim();
+                const disc = v('form-discipulador');
                 const dados = {
                     nome: v('form-nome'),
                     telefone: v('form-telefone') || null,
                     data_nascimento: v('form-data-nascimento') || null,
                     genero: v('form-genero'),
                     estado_civil: v('form-estado-civil'),
-                    discipulador: v('form-discipulador') || null,
+                    discipulador_id: /^\d+$/.test(disc) ? Number(disc) : null,
+                    discipulador: disc === '__legado' && this.membroEditando ? this.membroEditando.discipulador : null,
+                    celula_id: v('form-celula') ? Number(v('form-celula')) : null,
                     situacao: v('form-situacao'),
                     ministerio: v('form-ministerio'),
                     data_cadastro: v('form-data-cadastro'),
