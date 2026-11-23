@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Controle de Membros - Igreja Batista Orvalho</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --cor-principal: #0d2f38;
+            --cor-secundaria: #0f4a56;
+            --cor-accent: #2b8fa3;
+            --cor-fundo: #0a1f26;
+            --cor-card: #1a3a45;
+            --cor-branco: #e8eef2;
+            --cor-texto: #d1d9e0;
+            --cor-texto-luz: #8a95a3;
+            --cor-borda: #2a4a56;
+            --cor-visitante: #d4941e;
+            --cor-inativo: #6b7280;
+            --cor-erro: #f87171;
+        }
+
+        [hidden] { display: none !important; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--cor-fundo);
+            color: var(--cor-texto);
+        }
+
+        /* Telas avulsas (login, recuperação, pendente) */
+        .tela-simples {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .login-card {
+            background: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: 10px;
+            padding: 32px 28px;
+            width: 100%;
+            max-width: 380px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+        .login-card .gota { font-size: 40px; text-align: center; margin-bottom: 8px; }
+        .login-card h1 { font-size: 18px; text-align: center; color: var(--cor-branco); font-weight: 600; }
+        .login-card p.sub { font-size: 12px; text-align: center; color: var(--cor-texto-luz); margin: 4px 0 24px; line-height: 1.5; }
+        .msg-erro { color: var(--cor-erro); font-size: 13px; margin-top: 12px; min-height: 18px; text-align: center; }
+        .msg-ok { color: #4ade80; font-size: 13px; margin-top: 12px; text-align: center; line-height: 1.4; }
+        .link {
+            background: none; border: none; color: var(--cor-accent); cursor: pointer;
+            font-size: 13px; margin-top: 14px; display: block; width: 100%; text-align: center;
+        }
+        .link:hover { text-decoration: underline; }
+
+        .container { display: flex; height: 100vh; height: 100dvh; }
+
+        /* Menu lateral (desktop) */
+        .menu-lateral {
+            width: 240px;
+            background: linear-gradient(180deg, var(--cor-principal) 0%, var(--cor-secundaria) 100%);
+            color: var(--cor-branco);
+            padding: 24px 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--cor-borda);
+        }
+        .logo-secao {
+            display: flex; align-items: center; gap: 12px;
+            margin-bottom: 32px; padding: 12px;
+            background-color: rgba(43, 143, 163, 0.2);
+            border-radius: 8px;
+        }
+        .gota { font-size: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
+        .logo-texto h2 { font-size: 13px; font-weight: 700; line-height: 1.2; letter-spacing: 0.3px; }
+        .logo-texto p { font-size: 11px; opacity: 0.7; margin-top: 2px; }
+        .menu-itens { list-style: none; }
+        .menu-item {
+            padding: 11px 14px; margin: 4px 0; border-radius: 6px;
+            cursor: pointer; font-size: 13px; transition: all 0.3s;
+            color: var(--cor-texto-luz);
+        }
+        .menu-item:hover { background-color: rgba(43, 143, 163, 0.3); color: var(--cor-branco); }
+        .menu-item.ativo { background-color: var(--cor-accent); color: var(--cor-branco); font-weight: 600; }
+        .menu-separador { height: 1px; background: rgba(255,255,255,0.1); margin: 12px 0; }
+        .menu-rodape { margin-top: auto; padding-top: 16px; font-size: 11px; color: var(--cor-texto-luz); word-break: break-all; }
+
+        /* Conteúdo */
+        .conteudo { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+        .header {
+            background-color: var(--cor-card);
+            border-bottom: 1px solid var(--cor-borda);
+            padding: 20px 24px;
+            display: flex; justify-content: space-between; align-items: center; gap: 12px;
+        }
+        .header h1 { font-size: 26px; color: var(--cor-branco); font-weight: 300; letter-spacing: 0.5px; }
+        .header-acoes { display: flex; gap: 10px; align-items: center; }
+        .area-conteudo { flex: 1; overflow-y: auto; padding: 24px; }
+
+        /* Painel */
+        .painel-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px; margin-bottom: 32px;
+        }
+        .card-total {
+            background-color: var(--cor-card);
+            border-radius: 8px; padding: 20px;
+            border: 1px solid var(--cor-borda);
+            border-left: 3px solid var(--cor-accent);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .card-total h3 {
+            font-size: 11px; color: var(--cor-texto-luz); margin-bottom: 12px;
+            text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;
+        }
+        .card-total .numero { font-size: 36px; font-weight: 700; color: var(--cor-accent); }
+
+        .secao-lista {
+            background-color: var(--cor-card);
+            border-radius: 8px; padding: 24px;
+            border: 1px solid var(--cor-borda);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            margin-bottom: 24px;
+        }
+        .secao-lista h2 { font-size: 18px; margin-bottom: 20px; color: var(--cor-branco); font-weight: 600; }
+        .secao-lista .descricao { font-size: 13px; color: var(--cor-texto-luz); margin: -10px 0 18px; line-height: 1.5; }
+
+        .busca-filtros { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+        .input-busca {
+            padding: 10px 14px; border: 1px solid var(--cor-borda); border-radius: 6px;
+            font-size: 14px; flex: 1; min-width: 200px;
+            background-color: rgba(255,255,255,0.05); color: var(--cor-branco);
+        }
+        .input-busca::placeholder { color: var(--cor-texto-luz); }
+        .select-filtro {
+            padding: 10px 14px; border: 1px solid var(--cor-borda); border-radius: 6px;
+            font-size: 14px; background-color: rgba(255,255,255,0.05);
+            color: var(--cor-branco); cursor: pointer;
+        }
+        .select-filtro option { background-color: var(--cor-principal); color: var(--cor-branco); }
+
+        /* Tabelas */
+        .tabela-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th {
+            background-color: rgba(43,143,163,0.1); padding: 12px; text-align: left;
+            font-weight: 600; border-bottom: 2px solid var(--cor-borda);
+            color: var(--cor-accent); font-size: 12px; letter-spacing: 0.3px;
+        }
+        td { padding: 12px; border-bottom: 1px solid var(--cor-borda); color: var(--cor-texto); }
+        tr:hover { background-color: rgba(43,143,163,0.1); }
+        .nome-clicavel { color: var(--cor-accent); cursor: pointer; font-weight: 500; }
+        .nome-clicavel:hover { text-decoration: underline; }
+        .situacao-ativo { color: #4ade80; font-weight: 600; }
+        .situacao-visitante {
+            color: var(--cor-visitante); font-weight: 600;
+            background-color: rgba(212,148,30,0.2);
+            padding: 2px 8px; border-radius: 3px; display: inline-block;
+        }
+        .situacao-inativo { color: var(--cor-inativo); font-weight: 600; }
+
+        .paginacao {
+            display: flex; justify-content: space-between; align-items: center;
+            gap: 10px; margin-top: 16px; flex-wrap: wrap;
+            font-size: 13px; color: var(--cor-texto-luz);
+        }
+        .paginacao .botoes { display: flex; gap: 8px; }
+
+        /* Modal */
+        .modal {
+            display: none; position: fixed; inset: 0;
+            background-color: rgba(0,0,0,0.7); z-index: 1000;
+            align-items: center; justify-content: center;
+        }
+        .modal.aberto { display: flex; }
+        .modal-conteudo {
+            background-color: var(--cor-card); border-radius: 8px; padding: 28px;
+            max-width: 600px; width: 92%; max-height: 92vh; overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5); border: 1px solid var(--cor-borda);
+        }
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--cor-borda);
+        }
+        .modal-header h2 { color: var(--cor-branco); font-size: 20px; font-weight: 600; }
+        .fechar-modal {
+            background: none; border: none; font-size: 28px; cursor: pointer;
+            color: var(--cor-texto-luz); line-height: 1; padding: 0 6px;
+        }
+        .fechar-modal:hover { color: var(--cor-branco); }
+
+        .form-grupo { margin-bottom: 18px; }
+        .form-grupo label {
+            display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px;
+            color: var(--cor-accent); letter-spacing: 0.3px;
+        }
+        .form-grupo input, .form-grupo select {
+            width: 100%; padding: 11px 10px; border: 1px solid var(--cor-borda);
+            border-radius: 6px; font-size: 16px; font-family: inherit;
+            background-color: rgba(255,255,255,0.05); color: var(--cor-branco);
+        }
+        .form-grupo select option { background-color: var(--cor-principal); color: var(--cor-branco); }
+        .form-grupo input:focus, .form-grupo select:focus {
+            outline: none; border-color: var(--cor-accent);
+            box-shadow: 0 0 0 3px rgba(43,143,163,0.2);
+        }
+        .form-linha { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+        .botoes-modal {
+            display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap;
+            margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--cor-borda);
+        }
+        .botao {
+            padding: 11px 20px; border: none; border-radius: 6px; font-size: 14px;
+            cursor: pointer; font-weight: 600; transition: all 0.2s; letter-spacing: 0.3px;
+        }
+        .botao:disabled { opacity: 0.6; cursor: wait; }
+        .botao-pequeno { padding: 6px 12px; font-size: 12px; }
+        .botao-primario { background-color: var(--cor-accent); color: var(--cor-branco); }
+        .botao-primario:hover:not(:disabled) { background-color: #24738a; }
+        .botao-secundario {
+            background-color: rgba(255,255,255,0.1); color: var(--cor-texto);
+            border: 1px solid var(--cor-borda);
+        }
+        .botao-secundario:hover:not(:disabled) { background-color: rgba(255,255,255,0.15); }
+        .botao-perigo {
+            background-color: transparent; color: var(--cor-erro);
+            border: 1px solid var(--cor-erro); margin-right: auto;
+        }
+        .botao-perigo:hover:not(:disabled) { background-color: rgba(248,113,113,0.1); }
+        .botao-largo { width: 100%; }
+
+        /* Ficha: consentimento e histórico */
+        .ficha-info {
+            font-size: 12px; color: var(--cor-texto-luz); line-height: 1.6;
+            background: rgba(43,143,163,0.08); border: 1px solid var(--cor-borda);
+            border-radius: 6px; padding: 10px 12px; margin-bottom: 18px;
+        }
+        .historico { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--cor-borda); }
+        .historico h3 { font-size: 14px; color: var(--cor-branco); margin-bottom: 10px; font-weight: 600; }
+        .hist-item { font-size: 12px; padding: 8px 0; border-bottom: 1px dashed var(--cor-borda); line-height: 1.5; }
+        .hist-item .quando { color: var(--cor-texto-luz); }
+        .hist-item .acao { color: var(--cor-branco); font-weight: 600; }
+        .hist-item ul { margin: 4px 0 0 16px; color: var(--cor-texto); }
+        .hist-vazio { font-size: 12px; color: var(--cor-texto-luz); }
+
+        /* Estatísticas */
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px; margin-bottom: 24px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, rgba(43,143,163,0.2) 0%, rgba(43,143,163,0.05) 100%);
+            border: 1px solid var(--cor-borda); border-radius: 8px; padding: 24px; text-align: center;
+        }
+        .stat-label {
+            font-size: 12px; color: var(--cor-texto-luz); margin-bottom: 12px;
+            text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;
+        }
+        .stat-number { font-size: 42px; font-weight: 700; color: var(--cor-accent); margin-bottom: 8px; }
+        .stat-desc { font-size: 12px; color: var(--cor-texto-luz); line-height: 1.4; }
+        .stats-section { margin-bottom: 32px; }
+        .stats-section h3 {
+            font-size: 16px; color: var(--cor-branco); margin-bottom: 16px; font-weight: 600;
+            padding-bottom: 12px; border-bottom: 1px solid var(--cor-borda);
+        }
+        .info-box {
+            background-color: rgba(43,143,163,0.1); border-left: 3px solid var(--cor-accent);
+            padding: 14px; border-radius: 6px; font-size: 12px; color: var(--cor-texto-luz);
+            margin-bottom: 20px; line-height: 1.5;
+        }
+
+        .lista-mais { display: flex; flex-direction: column; gap: 12px; }
+        .lista-mais button { width: 100%; text-align: left; padding: 16px; font-size: 15px; }
+
+        .abas { display: none; }
+        .abas.ativa { display: block; }
+        .mensagem-vazia { text-align: center; padding: 32px; color: var(--cor-texto-luz); font-size: 14px; }
+
+        .toast {
+            position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+            background: var(--cor-principal); color: var(--cor-branco);
+            border: 1px solid var(--cor-accent); border-radius: 8px;
+            padding: 12px 20px; font-size: 14px; z-index: 2000;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4); max-width: 90vw; text-align: center;
+        }
+        .toast.erro { border-color: var(--cor-erro); color: var(--cor-erro); }
+
+        /* Menu inferior (mobile) */
+        .menu-mobile { display: none; }
+
+        .area-conteudo::-webkit-scrollbar { width: 8px; }
+        .area-conteudo::-webkit-scrollbar-track { background-color: rgba(0,0,0,0.2); }
+        .area-conteudo::-webkit-scrollbar-thumb { background-color: var(--cor-accent); border-radius: 4px; }
+
+        /* ===== MOBILE ===== */
+        @media (max-width: 768px) {
+            .menu-lateral { display: none; }
+
+            .header { padding: 14px 16px; }
+            .header h1 { font-size: 20px; }
+            .area-conteudo { padding: 14px; padding-bottom: 90px; }
+
+            .menu-mobile {
+                display: flex; position: fixed; bottom: 0; left: 0; right: 0;
+                background: var(--cor-principal); border-top: 1px solid var(--cor-borda);
+                z-index: 900; padding-bottom: env(safe-area-inset-bottom);
+            }
+            .menu-mobile button {
+                flex: 1; background: none; border: none; color: var(--cor-texto-luz);
+                padding: 10px 2px; font-size: 10px; cursor: pointer;
+                display: flex; flex-direction: column; align-items: center; gap: 2px;
+            }
+            .menu-mobile button span.ico { font-size: 20px; }
+            .menu-mobile button.ativo { color: var(--cor-accent); font-weight: 600; }
+
+            .painel-cards { grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+            .card-total { padding: 12px; }
+            .card-total h3 { font-size: 9px; margin-bottom: 6px; }
+            .card-total .numero { font-size: 26px; }
+
+            .secao-lista { padding: 16px; }
+            .busca-filtros { flex-direction: column; }
+            .input-busca { min-width: 0; }
+            .form-linha { grid-template-columns: 1fr; gap: 0; }
+            .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .stat-card { padding: 16px 8px; }
+            .stat-number { font-size: 32px; }
+            .botoes-modal .botao { flex: 1; }
+            .modal-conteudo { padding: 20px; }
+
+            /* Tabelas viram cartões */
+            .tabela-container { overflow-x: visible; }
+            table, thead, tbody, tr, td { display: block; }
+            thead { display: none; }
+            tr {
+                background: rgba(255,255,255,0.03);
+                border: 1px solid var(--cor-borda); border-radius: 8px;
+                margin-bottom: 10px; padding: 10px 12px;
+            }
+            td {
+                border: none; padding: 4px 0; display: flex;
+                justify-content: space-between; align-items: center; gap: 12px;
+                text-align: right; word-break: break-word;
+            }
+            td::before {
+                content: attr(data-label); color: var(--cor-texto-luz);
+                font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px;
+                text-align: left; flex-shrink: 0;
+            }
+            td.col-nome { font-size: 15px; padding-bottom: 6px; }
+            td.col-nome::before { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Login -->
+    <div class="tela-simples" id="tela-login" hidden>
+        <form class="login-card" onsubmit="app.entrar(event)">
+            <div class="gota">💧</div>
+            <h1>Igreja Batista Orvalho</h1>
+            <p class="sub">Secretaria · acesso restrito</p>
+            <div class="form-grupo">
+                <label for="login-email">E-mail</label>
+                <input type="email" id="login-email" required autocomplete="username">
+            </div>
+            <div class="form-grupo">
+                <label for="login-senha">Senha</label>
+                <input type="password" id="login-senha" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="botao botao-primario botao-largo" id="btn-entrar">Entrar</button>
+            <button type="button" class="link" onclick="app.esqueciSenha()">Esqueci minha senha</button>
+            <div class="msg-erro" id="login-erro"></div>
+            <div class="msg-ok" id="login-ok" hidden></div>
+        </form>
+    </div>
+
+    <!-- Nova senha (link de recuperação) -->
+    <div class="tela-simples" id="tela-recuperacao" hidden>
+        <form class="login-card" onsubmit="app.salvarNovaSenha(event)">
+            <div class="gota">🔑</div>
+            <h1>Definir nova senha</h1>
+            <p class="sub">Escolha uma senha nova para entrar no sistema.</p>
+            <div class="form-grupo">
+                <label for="nova-senha">Nova senha (mínimo 8 caracteres)</label>
+                <input type="password" id="nova-senha" required minlength="8" autocomplete="new-password">
+            </div>
+            <div class="form-grupo">
+                <label for="nova-senha2">Repita a nova senha</label>
+                <input type="password" id="nova-senha2" required minlength="8" autocomplete="new-password">
+            </div>
+            <button type="submit" class="botao botao-primario botao-largo" id="btn-nova-senha">Salvar senha</button>
+            <div class="msg-erro" id="recuperacao-erro"></div>
+        </form>
+    </div>
+
+    <!-- Acesso pendente -->
+    <div class="tela-simples" id="tela-pendente" hidden>
+        <div class="login-card">
+            <div class="gota">⏳</div>
+            <h1>Acesso ainda não liberado</h1>
+            <p class="sub">Seu login existe, mas o administrador ainda não liberou o acesso ao sistema. Peça a liberação e entre novamente.</p>
+            <button type="button" class="botao botao-secundario botao-largo" onclick="app.sair()">Sair</button>
+        </div>
+    </div>
+
+    <!-- Aplicação -->
+    <div class="container" id="app-container" hidden>
+        <aside class="menu-lateral">
+            <div class="logo-secao">
+                <div class="gota">💧</div>
+                <div class="logo-texto">
+                    <h2>Igreja Batista Orvalho</h2>
+                    <p>Secretaria</p>
+                </div>
+            </div>
+            <ul class="menu-itens">
+                <li class="menu-item ativo" data-secao="painel">Painel</li>
+                <li class="menu-item" data-secao="membros">Membros</li>
+                <li class="menu-item" data-secao="aniversariantes">Aniversariantes</li>
+                <li class="menu-item" data-secao="estatisticas">Estatísticas</li>
+                <li class="menu-separador"></li>
+                <li class="menu-item" data-secao="lixeira">Lixeira</li>
+                <li class="menu-item" data-secao="usuarios" data-admin hidden>Usuários e acessos</li>
+            </ul>
+            <div class="menu-rodape" id="menu-rodape"></div>
+        </aside>
+
+        <div class="conteudo">
+            <div class="header">
+                <h1 id="titulo-secao">Painel</h1>
+                <div class="header-acoes">
+                    <button class="botao botao-primario" onclick="app.abrirNovoMembro()">+ Novo</button>
+                    <button class="botao botao-secundario" onclick="app.sair()">Sair</button>
+                </div>
+            </div>
+
+            <div class="area-conteudo" id="area-conteudo">
+                <!-- Painel -->
+                <div id="painel" class="abas ativa">
+                    <div class="painel-cards">
+                        <div class="card-total"><h3>Membros Ativos</h3><div class="numero" id="total-ativos">0</div></div>
+                        <div class="card-total"><h3>Visitantes</h3><div class="numero" id="total-visitantes">0</div></div>
+                        <div class="card-total"><h3>Inativos</h3><div class="numero" id="total-inativos">0</div></div>
+                    </div>
+
+                    <div class="secao-lista">
+                        <h2>Cadastros mais recentes</h2>
+                        <div class="tabela-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Nome</th><th>Telefone</th><th>Data de Nascimento</th>
+                                        <th>Ministério</th><th>Cadastro</th><th>Situação</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabela-recentes"></tbody>
+                            </table>
+                        </div>
+                        <button class="botao botao-primario botao-largo" style="margin-top:16px" onclick="app.mudarSecao('membros')">Ver todos →</button>
+                    </div>
+                </div>
+
+                <!-- Membros -->
+                <div id="membros" class="abas">
+                    <div class="secao-lista">
+                        <h2>Todos os cadastros</h2>
+                        <div class="busca-filtros">
+                            <input type="text" class="input-busca" id="busca-nome" placeholder="Buscar por nome">
+                            <select class="select-filtro" id="filtro-situacao">
+                                <option value="">Todas as situações</option>
+                                <option value="Ativo">Ativo</option>
+                                <option value="Visitante">Visitante</option>
+                                <option value="Inativo">Inativo</option>
+                            </select>
+                            <select class="select-filtro" id="filtro-ministerio">
+                                <option value="">Todos os ministérios</option>
+                                <option value="Louvor">Louvor</option>
+                                <option value="Infantil">Infantil</option>
+                                <option value="Visitação">Visitação</option>
+                                <option value="Comunicação">Comunicação</option>
+                                <option value="Recepção">Recepção</option>
+                                <option value="Nenhum">Nenhum</option>
+                            </select>
+                        </div>
+                        <div class="tabela-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Nome</th><th>Telefone</th><th>Data de Nascimento</th>
+                                        <th>Ministério</th><th>Cadastro</th><th>Discipulador</th><th>Situação</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabela-membros"></tbody>
+                            </table>
+                        </div>
+                        <div id="mensagem-vazia-membros" class="mensagem-vazia"></div>
+                        <div class="paginacao" id="paginacao-membros" hidden></div>
+                    </div>
+                </div>
+
+                <!-- Aniversariantes -->
+                <div id="aniversariantes" class="abas">
+                    <div class="secao-lista">
+                        <h2>Aniversariantes</h2>
+                        <div class="busca-filtros">
+                            <select class="select-filtro" id="filtro-mes"></select>
+                        </div>
+                        <div class="tabela-container">
+                            <table>
+                                <thead>
+                                    <tr><th>Nome</th><th>Aniversário (DD/MM)</th><th>Telefone</th><th>Discipulador</th></tr>
+                                </thead>
+                                <tbody id="tabela-aniversariantes"></tbody>
+                            </table>
+                        </div>
+                        <div id="mensagem-vazia-aniversariantes" class="mensagem-vazia"></div>
+                    </div>
+                </div>
+
+                <!-- Estatísticas -->
+                <div id="estatisticas" class="abas">
+                    <div class="info-box">
+                        Indicadores de membros ativos: <strong style="color: var(--cor-accent);" id="total-membros-estatisticas">0</strong> cadastros na base. Este critério é aplicado em todos os cálculos abaixo.
+                    </div>
+                    <div class="stats-section">
+                        <h3>Faixa Etária</h3>
+                        <div class="stats-grid" id="estatistica-faixa-etaria"></div>
+                    </div>
+                    <div class="stats-section">
+                        <h3>Perfil dos Adultos</h3>
+                        <div class="stats-grid" id="estatistica-perfil-adultos"></div>
+                    </div>
+                    <div class="stats-section">
+                        <h3>Discipulado</h3>
+                        <div class="stats-grid" id="estatistica-discipulado"></div>
+                        <p style="color: var(--cor-texto-luz); font-size: 12px; margin-top: 16px;">O mesmo nome de discipulador é contado uma só vez, mesmo que acompanhe mais de uma pessoa.</p>
+                    </div>
+                </div>
+
+                <!-- Lixeira -->
+                <div id="lixeira" class="abas">
+                    <div class="secao-lista">
+                        <h2>Lixeira</h2>
+                        <p class="descricao">Cadastros excluídos ficam aqui e podem ser restaurados. Só o administrador pode apagar de vez.</p>
+                        <div class="tabela-container">
+                            <table>
+                                <thead>
+                                    <tr><th>Nome</th><th>Situação</th><th>Excluído em</th><th>Ações</th></tr>
+                                </thead>
+                                <tbody id="tabela-lixeira"></tbody>
+                            </table>
+                        </div>
+                        <div id="mensagem-vazia-lixeira" class="mensagem-vazia"></div>
+                    </div>
+                </div>
+
+                <!-- Usuários e acessos (administrador) -->
+                <div id="usuarios" class="abas">
+                    <div class="secao-lista">
+                        <h2>Usuários e acessos</h2>
+                        <p class="descricao">Para criar um novo usuário: no Supabase, vá em Authentication, Users, Add user. Ele aparecerá aqui como "Sem acesso" até você liberar.</p>
+                        <div class="tabela-container">
+                            <table>
+                                <thead>
+                                    <tr><th>E-mail</th><th>Acesso</th><th>Ações</th></tr>
+                                </thead>
+                                <tbody id="tabela-usuarios"></tbody>
+                            </table>
+                        </div>
+                        <div id="mensagem-vazia-usuarios" class="mensagem-vazia"></div>
+                    </div>
+                </div>
+
+                <!-- Mais (celular) -->
+                <div id="mais" class="abas">
+                    <div class="secao-lista">
+                        <h2>Mais opções</h2>
+                        <div class="lista-mais">
+                            <button class="botao botao-secundario" onclick="app.mudarSecao('lixeira')">🗑️ Lixeira</button>
+                            <button class="botao botao-secundario" data-admin hidden onclick="app.mudarSecao('usuarios')">👤 Usuários e acessos</button>
+                            <button class="botao botao-secundario" onclick="app.sair()">🚪 Sair</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Menu inferior (mobile) -->
+    <nav class="menu-mobile" id="menu-mobile" hidden>
+        <button class="ativo" data-secao="painel"><span class="ico">🏠</span>Painel</button>
+        <button data-secao="membros"><span class="ico">👥</span>Membros</button>
+        <button data-secao="aniversariantes"><span class="ico">🎂</span>Aniversários</button>
+        <button data-secao="estatisticas"><span class="ico">📊</span>Estatísticas</button>
+        <button data-secao="mais"><span class="ico">⋯</span>Mais</button>
+    </nav>
+
+    <!-- Ficha do membro -->
+    <div class="modal" id="modal-membro">
+        <div class="modal-conteudo">
+            <div class="modal-header">
+                <h2 id="modal-titulo">Novo cadastro</h2>
+                <button class="fechar-modal" type="button" onclick="app.fecharModal()" aria-label="Fechar">×</button>
+            </div>
+
+            <div class="ficha-info" id="ficha-info" hidden></div>
+
+            <form id="form-membro" onsubmit="app.salvarMembro(event)">
+                <div class="form-grupo">
+                    <label>Nome completo *</label>
+                    <input type="text" id="form-nome" required maxlength="120">
+                </div>
+                <div class="form-linha">
+                    <div class="form-grupo">
+                        <label>Telefone</label>
+                        <input type="tel" id="form-telefone" placeholder="(31) 9xxxx-xxxx" maxlength="20">
+                    </div>
+                    <div class="form-grupo">
+                        <label>Data de nascimento</label>
+                        <input type="date" id="form-data-nascimento">
+                    </div>
+                </div>
+                <div class="form-linha">
+                    <div class="form-grupo">
+                        <label>Gênero</label>
+                        <select id="form-genero">
+                            <option value="Não informado">Não informado</option>
+                            <option value="Masculino">Masculino</option>
+                            <option value="Feminino">Feminino</option>
+                            <option value="Outro">Outro</option>
+                        </select>
+                    </div>
+                    <div class="form-grupo">
+                        <label>Estado civil</label>
+                        <select id="form-estado-civil">
+                            <option value="Não informado">Não informado</option>
+                            <option value="Solteiro(a)">Solteiro(a)</option>
+                            <option value="Casado(a)">Casado(a)</option>
+                            <option value="União estável">União estável</option>
+                            <option value="Separado(a)">Separado(a)</option>
+                            <option value="Divorciado(a)">Divorciado(a)</option>
+                            <option value="Viúvo(a)">Viúvo(a)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-linha">
+                    <div class="form-grupo">
+                        <label>Discipulador</label>
+                        <input type="text" id="form-discipulador" placeholder="Nome de quem acompanha" maxlength="120">
+                    </div>
+                    <div class="form-grupo">
+                        <label>Situação *</label>
+                        <select id="form-situacao" required>
+                            <option value="Ativo">Ativo</option>
+                            <option value="Visitante">Visitante</option>
+                            <option value="Inativo">Inativo</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-linha">
+                    <div class="form-grupo">
+                        <label>Ministério</label>
+                        <select id="form-ministerio">
+                            <option value="Nenhum">Nenhum</option>
+                            <option value="Louvor">Louvor</option>
+                            <option value="Infantil">Infantil</option>
+                            <option value="Visitação">Visitação</option>
+                            <option value="Comunicação">Comunicação</option>
+                            <option value="Recepção">Recepção</option>
+                        </select>
+                    </div>
+                    <div class="form-grupo">
+                        <label>Data de cadastro *</label>
+                        <input type="date" id="form-data-cadastro" required>
+                    </div>
+                </div>
+                <div class="form-grupo">
+                    <label>Data do batismo</label>
+                    <input type="date" id="form-data-batismo">
+                </div>
+
+                <div class="botoes-modal">
+                    <button type="button" class="botao botao-perigo" id="btn-excluir" onclick="app.moverParaLixeira()" hidden>Mover para a lixeira</button>
+                    <button type="button" class="botao botao-secundario" onclick="app.fecharModal()">Cancelar</button>
+                    <button type="submit" class="botao botao-primario" id="btn-salvar">Salvar</button>
+                </div>
+            </form>
+
+            <div class="historico" id="historico" hidden>
+                <h3>Histórico de alterações</h3>
+                <div id="historico-lista"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Configuração do Supabase (a chave publishable é pública; a segurança está nas regras RLS do banco)
+        const SUPABASE_URL = 'https://vjctainlubvwtwbonwbu.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_qPHYcnc4MNcXDzkrcB39Kg_XhYD-OMr';
+
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const POR_PAGINA = 25;
+        const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+        const ROTULOS_CAMPOS = {
+            nome: 'Nome', telefone: 'Telefone', data_nascimento: 'Nascimento', genero: 'Gênero',
+            estado_civil: 'Estado civil', discipulador: 'Discipulador', situacao: 'Situação',
+            ministerio: 'Ministério', data_cadastro: 'Data de cadastro', data_batismo: 'Batismo'
+        };
+        const ROTULOS_ACOES = {
+            criar: 'Cadastro criado', editar: 'Cadastro editado', excluir: 'Movido para a lixeira',
+            restaurar: 'Restaurado da lixeira', excluir_definitivo: 'Excluído definitivamente'
+        };
+        const ROTULOS_PAPEL = { admin: 'Administrador', secretaria: 'Secretaria', pendente: 'Sem acesso (pendente)' };
+
+        // Escapa texto antes de inserir em HTML (os dados do formulário público não são confiáveis)
+        function esc(valor) {
+            return String(valor ?? '').replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[c]));
+        }
+
+        function hojeISO() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+
+        function formatarData(data) {
+            if (!data) return '—';
+            const [a, m, d] = String(data).substring(0, 10).split('-');
+            return `${d}/${m}/${a}`;
+        }
+
+        function formatarDataHora(iso) {
+            if (!iso) return '—';
+            return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+        }
+
+        const app = {
+            perfil: null,
+            recuperando: false,
+            membroEditando: null,
+            secaoAtual: 'painel',
+            pagina: 0,
+            tokenMembros: 0,
+            temporizadorBusca: null,
+
+            // ---------- Início e sessão ----------
+            async init() {
+                this.montarFiltroMes();
+                this.anexarEventos();
+
+                db.auth.onAuthStateChange((evento) => {
+                    if (evento === 'PASSWORD_RECOVERY') {
+                        this.recuperando = true;
+                        this.mostrarTela('recuperacao');
+                    } else if (evento === 'SIGNED_OUT') {
+                        this.perfil = null;
+                        this.mostrarTela('login');
+                    }
+                });
+
+                const { data } = await db.auth.getSession();
+
+                if (this.recuperando || location.hash.includes('type=recovery')) {
+                    this.recuperando = true;
+                    this.mostrarTela('recuperacao');
+                    return;
+                }
+                if (location.hash.includes('error_description')) {
+                    history.replaceState(null, '', location.pathname);
+                    this.mostrarTela('login');
+                    document.getElementById('login-erro').textContent = 'Link inválido ou expirado. Peça um novo em "Esqueci minha senha".';
+                    return;
+                }
+                if (data.session) await this.iniciarSessao();
+                else this.mostrarTela('login');
+            },
+
+            mostrarTela(nome) {
+                document.getElementById('tela-login').hidden = nome !== 'login';
+                document.getElementById('tela-recuperacao').hidden = nome !== 'recuperacao';
+                document.getElementById('tela-pendente').hidden = nome !== 'pendente';
+                document.getElementById('app-container').hidden = nome !== 'app';
+                document.getElementById('menu-mobile').hidden = nome !== 'app';
+            },
+
+            async iniciarSessao() {
+                const { data: dadosUsuario } = await db.auth.getUser();
+                const usuario = dadosUsuario && dadosUsuario.user;
+                if (!usuario) { this.mostrarTela('login'); return; }
+
+                const { data: perfil, error } = await db
+                    .from('perfis').select('papel').eq('user_id', usuario.id).maybeSingle();
+
+                if (error || !perfil || perfil.papel === 'pendente') {
+                    this.mostrarTela('pendente');
+                    return;
+                }
+
+                this.perfil = { id: usuario.id, email: usuario.email, papel: perfil.papel };
+                document.querySelectorAll('[data-admin]').forEach(el => { el.hidden = this.perfil.papel !== 'admin'; });
+                document.getElementById('menu-rodape').textContent = `${usuario.email} · ${ROTULOS_PAPEL[perfil.papel]}`;
+
+                this.mostrarTela('app');
+                this.mudarSecao('painel');
+            },
+
+            async entrar(event) {
+                event.preventDefault();
+                const btn = document.getElementById('btn-entrar');
+                const erro = document.getElementById('login-erro');
+                document.getElementById('login-ok').hidden = true;
+                erro.textContent = '';
+                btn.disabled = true;
+                btn.textContent = 'Entrando...';
+
+                const { error } = await db.auth.signInWithPassword({
+                    email: document.getElementById('login-email').value.trim(),
+                    password: document.getElementById('login-senha').value
+                });
+
+                btn.disabled = false;
+                btn.textContent = 'Entrar';
+
+                if (error) {
+                    erro.textContent = 'E-mail ou senha incorretos.';
+                    return;
+                }
+                document.getElementById('login-senha').value = '';
+                await this.iniciarSessao();
+            },
+
+            async esqueciSenha() {
+                const erro = document.getElementById('login-erro');
+                const ok = document.getElementById('login-ok');
+                erro.textContent = '';
+                ok.hidden = true;
+
+                const email = document.getElementById('login-email').value.trim();
+                if (!email) {
+                    erro.textContent = 'Digite seu e-mail no campo acima e clique de novo.';
+                    return;
+                }
+                const { error } = await db.auth.resetPasswordForEmail(email, {
+                    redirectTo: location.origin + location.pathname
+                });
+                if (error) {
+                    erro.textContent = 'Não foi possível enviar agora. Tente novamente em alguns minutos.';
+                    return;
+                }
+                ok.textContent = 'Se o e-mail estiver cadastrado, você receberá um link para criar uma nova senha.';
+                ok.hidden = false;
+            },
+
+            async salvarNovaSenha(event) {
+                event.preventDefault();
+                const erro = document.getElementById('recuperacao-erro');
+                const s1 = document.getElementById('nova-senha').value;
+                const s2 = document.getElementById('nova-senha2').value;
+                erro.textContent = '';
+
+                if (s1.length < 8) { erro.textContent = 'A senha precisa ter ao menos 8 caracteres.'; return; }
+                if (s1 !== s2) { erro.textContent = 'As senhas não são iguais.'; return; }
+
+                const btn = document.getElementById('btn-nova-senha');
+                btn.disabled = true;
+                const { error } = await db.auth.updateUser({ password: s1 });
+                btn.disabled = false;
+
+                if (error) {
+                    erro.textContent = 'Não foi possível salvar a senha. Peça um novo link de recuperação.';
+                    return;
+                }
+                this.recuperando = false;
+                history.replaceState(null, '', location.pathname);
+                document.getElementById('nova-senha').value = '';
+                document.getElementById('nova-senha2').value = '';
+                await this.iniciarSessao();
+                this.toast('Senha alterada com sucesso.');
+            },
+
+            async sair() {
+                await db.auth.signOut();
+            },
+
+            // ---------- Navegação ----------
+            anexarEventos() {
+                document.querySelectorAll('[data-secao]').forEach(item => {
+                    item.addEventListener('click', () => this.mudarSecao(item.getAttribute('data-secao')));
+                });
+                document.getElementById('busca-nome').addEventListener('input', () => {
+                    clearTimeout(this.temporizadorBusca);
+                    this.temporizadorBusca = setTimeout(() => { this.pagina = 0; this.renderMembros(); }, 300);
+                });
+                document.getElementById('filtro-situacao').addEventListener('change', () => { this.pagina = 0; this.renderMembros(); });
+                document.getElementById('filtro-ministerio').addEventListener('change', () => { this.pagina = 0; this.renderMembros(); });
+                document.getElementById('filtro-mes').addEventListener('change', () => this.renderAniversariantes());
+            },
+
+            montarFiltroMes() {
+                const select = document.getElementById('filtro-mes');
+                const mesAtual = new Date().getMonth() + 1;
+                select.innerHTML = MESES.map((nome, i) =>
+                    `<option value="${i + 1}"${i + 1 === mesAtual ? ' selected' : ''}>${nome.charAt(0).toUpperCase() + nome.slice(1)}</option>`
+                ).join('');
+            },
+
+            mudarSecao(secao) {
+                if (secao === 'usuarios' && (!this.perfil || this.perfil.papel !== 'admin')) return;
+                this.secaoAtual = secao;
+                document.querySelectorAll('.abas').forEach(aba => aba.classList.remove('ativa'));
+                document.getElementById(secao).classList.add('ativa');
+                document.querySelectorAll('[data-secao]').forEach(i => {
+                    const alvo = i.getAttribute('data-secao');
+                    // no celular, Lixeira e Usuários ficam dentro de "Mais"
+                    const ativo = alvo === secao || (alvo === 'mais' && (secao === 'lixeira' || secao === 'usuarios'));
+                    if (i.closest('.menu-mobile') || i.classList.contains('menu-item')) i.classList.toggle('ativo', ativo);
+                });
+
+                const titulos = {
+                    painel: 'Painel', membros: 'Membros', aniversariantes: 'Aniversariantes',
+                    estatisticas: 'Estatísticas', lixeira: 'Lixeira', usuarios: 'Usuários e acessos', mais: 'Mais'
+                };
+                document.getElementById('titulo-secao').textContent = titulos[secao];
+                document.getElementById('area-conteudo').scrollTop = 0;
+                this.renderizarSecaoAtual();
+            },
+
+            renderizarSecaoAtual() {
+                const s = this.secaoAtual;
+                if (s === 'painel') this.renderPainel();
+                if (s === 'membros') this.renderMembros();
+                if (s === 'aniversariantes') this.renderAniversariantes();
+                if (s === 'estatisticas') this.renderEstatisticas();
+                if (s === 'lixeira') this.renderLixeira();
+                if (s === 'usuarios') this.renderUsuarios();
+            },
+
+            // ---------- Renderização ----------
+            situacaoHtml(situacao) {
+                const cls = { Ativo: 'situacao-ativo', Visitante: 'situacao-visitante', Inativo: 'situacao-inativo' }[situacao] || '';
+                return `<span class="${cls}">${esc(situacao)}</span>`;
+            },
+
+            async renderPainel() {
+                const [resumo, recentes] = await Promise.all([
+                    db.rpc('resumo_painel'),
+                    db.from('membros').select('*').is('excluido_em', null)
+                        .order('data_cadastro', { ascending: false }).order('id', { ascending: false }).limit(5)
+                ]);
+
+                if (resumo.error || recentes.error) {
+                    this.toast('Erro ao carregar o painel.', true);
+                    return;
+                }
+                document.getElementById('total-ativos').textContent = resumo.data.ativos;
+                document.getElementById('total-visitantes').textContent = resumo.data.visitantes;
+                document.getElementById('total-inativos').textContent = resumo.data.inativos;
+
+                document.getElementById('tabela-recentes').innerHTML = recentes.data.map(m => `
+                    <tr>
+                        <td class="col-nome" data-label="Nome"><span class="nome-clicavel" onclick="app.abrirMembro(${Number(m.id)})">${esc(m.nome)}</span></td>
+                        <td data-label="Telefone">${esc(m.telefone) || '—'}</td>
+                        <td data-label="Nascimento">${formatarData(m.data_nascimento)}</td>
+                        <td data-label="Ministério">${esc(m.ministerio)}</td>
+                        <td data-label="Cadastro">${formatarData(m.data_cadastro)}</td>
+                        <td data-label="Situação">${this.situacaoHtml(m.situacao)}</td>
+                    </tr>`).join('');
+            },
+
+            async renderMembros() {
+                const token = ++this.tokenMembros;
+                const de = this.pagina * POR_PAGINA;
+                const ate = de + POR_PAGINA - 1;
+
+                const busca = document.getElementById('busca-nome').value.trim();
+                const situacao = document.getElementById('filtro-situacao').value;
+                const ministerio = document.getElementById('filtro-ministerio').value;
+
+                let q = db.from('membros').select('*', { count: 'exact' }).is('excluido_em', null);
+                if (busca) q = q.ilike('nome', `%${busca.replace(/[\\%_]/g, '\\$&')}%`);
+                if (situacao) q = q.eq('situacao', situacao);
+                if (ministerio) q = q.eq('ministerio', ministerio);
+                q = q.order('nome', { ascending: true }).order('id', { ascending: true }).range(de, ate);
+
+                const { data, error, count } = await q;
+                if (token !== this.tokenMembros) return; // resposta antiga, descarta
+
+                if (error) {
+                    if (error.code === 'PGRST103' && this.pagina > 0) { this.pagina = 0; return this.renderMembros(); }
+                    this.toast('Erro ao carregar os membros.', true);
+                    return;
+                }
+
+                const total = count || 0;
+                const tbody = document.getElementById('tabela-membros');
+                const msgVazia = document.getElementById('mensagem-vazia-membros');
+                const pag = document.getElementById('paginacao-membros');
+
+                if (data.length === 0) {
+                    tbody.innerHTML = '';
+                    msgVazia.textContent = 'Nenhum membro encontrado.';
+                    pag.hidden = true;
+                    return;
+                }
+                msgVazia.textContent = '';
+                tbody.innerHTML = data.map(m => `
+                    <tr>
+                        <td class="col-nome" data-label="Nome"><span class="nome-clicavel" onclick="app.abrirMembro(${Number(m.id)})">${esc(m.nome)}</span></td>
+                        <td data-label="Telefone">${esc(m.telefone) || '—'}</td>
+                        <td data-label="Nascimento">${formatarData(m.data_nascimento)}</td>
+                        <td data-label="Ministério">${esc(m.ministerio)}</td>
+                        <td data-label="Cadastro">${formatarData(m.data_cadastro)}</td>
+                        <td data-label="Discipulador">${esc(m.discipulador) || '—'}</td>
+                        <td data-label="Situação">${this.situacaoHtml(m.situacao)}</td>
+                    </tr>`).join('');
+
+                const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA));
+                pag.hidden = false;
+                pag.innerHTML = `
+                    <span>${total} cadastro${total === 1 ? '' : 's'} · página ${this.pagina + 1} de ${totalPaginas}</span>
+                    <div class="botoes">
+                        <button class="botao botao-secundario botao-pequeno" ${this.pagina === 0 ? 'disabled' : ''} onclick="app.mudarPagina(-1)">← Anterior</button>
+                        <button class="botao botao-secundario botao-pequeno" ${this.pagina + 1 >= totalPaginas ? 'disabled' : ''} onclick="app.mudarPagina(1)">Próxima →</button>
+                    </div>`;
+            },
+
+            mudarPagina(delta) {
+                this.pagina = Math.max(0, this.pagina + delta);
+                this.renderMembros();
+                document.getElementById('area-conteudo').scrollTop = 0;
+            },
+
+            async renderAniversariantes() {
+                const mes = parseInt(document.getElementById('filtro-mes').value, 10);
+                const { data, error } = await db.rpc('aniversariantes', { p_mes: mes });
+                if (error) { this.toast('Erro ao carregar os aniversariantes.', true); return; }
+
+                const tbody = document.getElementById('tabela-aniversariantes');
+                const msgVazia = document.getElementById('mensagem-vazia-aniversariantes');
+
+                if (data.length === 0) {
+                    tbody.innerHTML = '';
+                    msgVazia.textContent = 'Nenhum aniversariante neste mês.';
+                    return;
+                }
+                msgVazia.textContent = '';
+                tbody.innerHTML = data.map(m => {
+                    const dia = m.data_nascimento.substring(8, 10);
+                    const mm = m.data_nascimento.substring(5, 7);
+                    return `
+                    <tr>
+                        <td class="col-nome" data-label="Nome"><span class="nome-clicavel" onclick="app.abrirMembro(${Number(m.id)})">${esc(m.nome)}</span></td>
+                        <td data-label="Aniversário">${dia}/${mm}</td>
+                        <td data-label="Telefone">${esc(m.telefone) || '—'}</td>
+                        <td data-label="Discipulador">${esc(m.discipulador) || '—'}</td>
+                    </tr>`;
+                }).join('');
+            },
+
+            async renderEstatisticas() {
+                const { data: s, error } = await db.rpc('estatisticas_ativos');
+                if (error) { this.toast('Erro ao carregar as estatísticas.', true); return; }
+
+                document.getElementById('total-membros-estatisticas').textContent = s.total;
+
+                const card = (label, numero, desc) => `
+                    <div class="stat-card">
+                        <div class="stat-label">${label}</div>
+                        <div class="stat-number">${numero}</div>
+                        <div class="stat-desc">${desc}</div>
+                    </div>`;
+
+                document.getElementById('estatistica-faixa-etaria').innerHTML =
+                    card('Crianças', s.criancas, '0 a 11 anos') +
+                    card('Adolescentes', s.adolescentes, '12 a 17 anos') +
+                    card('Adultos', s.adultos, '18+ anos') +
+                    card('Sem data', s.sem_data, 'Não informada');
+
+                document.getElementById('estatistica-perfil-adultos').innerHTML =
+                    card('Homens', s.homens, 'Adultos') +
+                    card('Mulheres', s.mulheres, 'Adultos') +
+                    card('Outro / Não inf.', s.outros, 'Adultos');
+
+                document.getElementById('estatistica-discipulado').innerHTML =
+                    card('Discipuladores', s.discipuladores, 'Distintos') +
+                    card('Com discipulador', s.com_discipulador, 'Membros acompanhados') +
+                    card('Sem discipulador', s.sem_discipulador, 'Sem acompanhamento');
+            },
+
+            async renderLixeira() {
+                const { data, error } = await db.from('membros').select('id,nome,situacao,excluido_em')
+                    .not('excluido_em', 'is', null).order('excluido_em', { ascending: false }).limit(200);
+                if (error) { this.toast('Erro ao carregar a lixeira.', true); return; }
+
+                const tbody = document.getElementById('tabela-lixeira');
+                const msgVazia = document.getElementById('mensagem-vazia-lixeira');
+
+                if (data.length === 0) {
+                    tbody.innerHTML = '';
+                    msgVazia.textContent = 'A lixeira está vazia.';
+                    return;
+                }
+                msgVazia.textContent = '';
+                const admin = this.perfil && this.perfil.papel === 'admin';
+                tbody.innerHTML = data.map(m => `
+                    <tr>
+                        <td class="col-nome" data-label="Nome">${esc(m.nome)}</td>
+                        <td data-label="Situação">${this.situacaoHtml(m.situacao)}</td>
+                        <td data-label="Excluído em">${formatarDataHora(m.excluido_em)}</td>
+                        <td data-label="Ações">
+                            <button class="botao botao-secundario botao-pequeno" onclick="app.restaurar(${Number(m.id)})">Restaurar</button>
+                            ${admin ? `<button class="botao botao-perigo botao-pequeno" style="margin-right:0;margin-left:6px" onclick="app.excluirDefinitivo(${Number(m.id)})">Apagar de vez</button>` : ''}
+                        </td>
+                    </tr>`).join('');
+            },
+
+            async renderUsuarios() {
+                const { data, error } = await db.from('perfis').select('user_id,email,papel').order('email');
+                if (error) { this.toast('Erro ao carregar os usuários.', true); return; }
+
+                const tbody = document.getElementById('tabela-usuarios');
+                const msgVazia = document.getElementById('mensagem-vazia-usuarios');
+
+                if (data.length === 0) {
+                    tbody.innerHTML = '';
+                    msgVazia.textContent = 'Nenhum usuário encontrado.';
+                    return;
+                }
+                msgVazia.textContent = '';
+                tbody.innerHTML = data.map(u => {
+                    const euMesmo = u.user_id === this.perfil.id;
+                    return `
+                    <tr>
+                        <td class="col-nome" data-label="E-mail">${esc(u.email)}${euMesmo ? ' (você)' : ''}</td>
+                        <td data-label="Acesso">
+                            <select class="select-filtro" id="papel-${esc(u.user_id)}" ${euMesmo ? 'disabled' : ''}>
+                                ${Object.keys(ROTULOS_PAPEL).map(p => `<option value="${p}"${p === u.papel ? ' selected' : ''}>${ROTULOS_PAPEL[p]}</option>`).join('')}
+                            </select>
+                        </td>
+                        <td data-label="Ações">
+                            ${euMesmo ? '—' : `<button class="botao botao-primario botao-pequeno" onclick="app.salvarPapel('${esc(u.user_id)}')">Salvar</button>`}
+                        </td>
+                    </tr>`;
+                }).join('');
+            },
+
+            // ---------- Ações de usuários e lixeira ----------
+            async salvarPapel(userId) {
+                const papel = document.getElementById(`papel-${userId}`).value;
+                const { error } = await db.from('perfis').update({ papel }).eq('user_id', userId);
+                if (error) { this.toast('Não foi possível alterar o acesso.', true); return; }
+                this.toast('Acesso atualizado.');
+                this.renderUsuarios();
+            },
+
+            async restaurar(id) {
+                const { error } = await db.from('membros').update({ excluido_em: null }).eq('id', id);
+                if (error) { this.toast('Não foi possível restaurar.', true); return; }
+                this.toast('Cadastro restaurado.');
+                this.renderLixeira();
+            },
+
+            async excluirDefinitivo(id) {
+                if (!confirm('Apagar este cadastro de vez? Ele e o histórico dele serão removidos e NÃO poderão ser recuperados.')) return;
+                const { error } = await db.from('membros').delete().eq('id', id);
+                if (error) { this.toast('Não foi possível apagar.', true); return; }
+                this.toast('Cadastro apagado definitivamente.');
+                this.renderLixeira();
+            },
+
+            // ---------- Ficha ----------
+            abrirNovoMembro() {
+                this.membroEditando = null;
+                document.getElementById('modal-titulo').textContent = 'Novo cadastro';
+                document.getElementById('form-membro').reset();
+                document.getElementById('form-data-cadastro').value = hojeISO();
+                document.getElementById('btn-excluir').hidden = true;
+                document.getElementById('ficha-info').hidden = true;
+                document.getElementById('historico').hidden = true;
+                document.getElementById('modal-membro').classList.add('aberto');
+            },
+
+            async abrirMembro(id) {
+                const { data: m, error } = await db.from('membros').select('*').eq('id', id).maybeSingle();
+                if (error || !m) { this.toast('Não foi possível abrir o cadastro.', true); return; }
+
+                this.membroEditando = m;
+                document.getElementById('modal-titulo').textContent = 'Editar cadastro';
+                document.getElementById('form-nome').value = m.nome;
+                document.getElementById('form-telefone').value = m.telefone || '';
+                document.getElementById('form-data-nascimento').value = m.data_nascimento || '';
+                document.getElementById('form-genero').value = m.genero;
+                document.getElementById('form-estado-civil').value = m.estado_civil;
+                document.getElementById('form-discipulador').value = m.discipulador || '';
+                document.getElementById('form-situacao').value = m.situacao;
+                document.getElementById('form-ministerio').value = m.ministerio;
+                document.getElementById('form-data-cadastro').value = m.data_cadastro;
+                document.getElementById('form-data-batismo').value = m.data_batismo || '';
+                document.getElementById('btn-excluir').hidden = false;
+
+                const info = document.getElementById('ficha-info');
+                info.hidden = false;
+                info.innerHTML = m.consentimento_em
+                    ? `Consentimento LGPD registrado em ${formatarDataHora(m.consentimento_em)} (termo ${esc(m.consentimento_versao)}).`
+                    : 'Consentimento LGPD: sem registro neste cadastro.';
+
+                document.getElementById('modal-membro').classList.add('aberto');
+                this.carregarHistorico(id);
+            },
+
+            async carregarHistorico(id) {
+                const caixa = document.getElementById('historico');
+                const lista = document.getElementById('historico-lista');
+                caixa.hidden = false;
+                lista.innerHTML = '<div class="hist-vazio">Carregando...</div>';
+
+                const { data, error } = await db.from('auditoria').select('*')
+                    .eq('tabela', 'membros').eq('registro_id', id)
+                    .order('ocorrido_em', { ascending: false }).limit(50);
+
+                if (this.membroEditando && this.membroEditando.id !== id) return; // ficha trocada
+                if (error) { lista.innerHTML = '<div class="hist-vazio">Não foi possível carregar o histórico.</div>'; return; }
+                if (data.length === 0) { lista.innerHTML = '<div class="hist-vazio">Sem registros.</div>'; return; }
+
+                lista.innerHTML = data.map(h => {
+                    const quem = h.usuario_email ? esc(h.usuario_email) : 'formulário público';
+                    let detalhe = '';
+                    if (h.acao === 'editar' && h.dados) {
+                        const itens = Object.keys(h.dados)
+                            .filter(k => ROTULOS_CAMPOS[k])
+                            .map(k => `<li>${ROTULOS_CAMPOS[k]}: ${this.formatarValor(k, h.dados[k].de)} → ${this.formatarValor(k, h.dados[k].para)}</li>`);
+                        if (itens.length) detalhe = `<ul>${itens.join('')}</ul>`;
+                    }
+                    return `
+                    <div class="hist-item">
+                        <span class="acao">${ROTULOS_ACOES[h.acao] || esc(h.acao)}</span>
+                        <span class="quando"> · ${formatarDataHora(h.ocorrido_em)} · ${quem}</span>
+                        ${detalhe}
+                    </div>`;
+                }).join('');
+            },
+
+            formatarValor(campo, valor) {
+                if (valor === null || valor === undefined || valor === '') return '—';
+                if (['data_nascimento', 'data_cadastro', 'data_batismo'].includes(campo)) return formatarData(valor);
+                return esc(valor);
+            },
+
+            async salvarMembro(event) {
+                event.preventDefault();
+                const v = id => document.getElementById(id).value.trim();
+                const dados = {
+                    nome: v('form-nome'),
+                    telefone: v('form-telefone') || null,
+                    data_nascimento: v('form-data-nascimento') || null,
+                    genero: v('form-genero'),
+                    estado_civil: v('form-estado-civil'),
+                    discipulador: v('form-discipulador') || null,
+                    situacao: v('form-situacao'),
+                    ministerio: v('form-ministerio'),
+                    data_cadastro: v('form-data-cadastro'),
+                    data_batismo: v('form-data-batismo') || null
+                };
+
+                const btn = document.getElementById('btn-salvar');
+                btn.disabled = true;
+                btn.textContent = 'Salvando...';
+
+                const { error } = this.membroEditando
+                    ? await db.from('membros').update(dados).eq('id', this.membroEditando.id)
+                    : await db.from('membros').insert(dados);
+
+                btn.disabled = false;
+                btn.textContent = 'Salvar';
+
+                if (error) {
+                    this.toast('Não foi possível salvar. Verifique os dados.', true);
+                    return;
+                }
+                this.fecharModal();
+                this.toast('Cadastro salvo.');
+                this.renderizarSecaoAtual();
+            },
+
+            async moverParaLixeira() {
+                if (!this.membroEditando) return;
+                if (!confirm(`Mover o cadastro de ${this.membroEditando.nome} para a lixeira? Você poderá restaurá-lo depois.`)) return;
+
+                const { error } = await db.from('membros')
+                    .update({ excluido_em: new Date().toISOString() }).eq('id', this.membroEditando.id);
+                if (error) { this.toast('Não foi possível mover para a lixeira.', true); return; }
+
+                this.fecharModal();
+                this.toast('Movido para a lixeira.');
+                this.renderizarSecaoAtual();
+            },
+
+            fecharModal() {
+                document.getElementById('modal-membro').classList.remove('aberto');
+                document.getElementById('form-membro').reset();
+                this.membroEditando = null;
+            },
+
+            toast(texto, erro = false) {
+                const antigo = document.querySelector('.toast');
+                if (antigo) antigo.remove();
+                const el = document.createElement('div');
+                el.className = 'toast' + (erro ? ' erro' : '');
+                el.textContent = texto;
+                document.body.appendChild(el);
+                setTimeout(() => el.remove(), 3500);
+            }
+        };
+
+        app.init();
+    </script>
+</body>
+</html>
