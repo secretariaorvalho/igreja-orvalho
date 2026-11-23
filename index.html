@@ -487,6 +487,7 @@
                             <select class="select-filtro" id="filtro-ministerio">
                                 <option value="">Todos os ministérios</option>
                             </select>
+                            <button class="botao botao-secundario" data-admin hidden id="btn-exportar-membros" onclick="app.exportarMembros()">⬇ Exportar Excel</button>
                         </div>
                         <div class="tabela-container">
                             <table>
@@ -510,6 +511,7 @@
                         <h2>Aniversariantes</h2>
                         <div class="busca-filtros">
                             <select class="select-filtro" id="filtro-mes"></select>
+                            <button class="botao botao-secundario" data-admin hidden id="btn-exportar-aniversariantes" onclick="app.exportarAniversariantes()">⬇ Exportar Excel</button>
                         </div>
                         <div class="tabela-container">
                             <table>
@@ -1440,6 +1442,107 @@
                     .map(x => `<option value="${x.id}"${x.id === sel ? ' selected' : ''}>${esc(x.nome)}</option>`).join('');
             },
 
+            // ---------- Exportar para Excel (somente administrador) ----------
+            carregarXlsx() {
+                if (window.XLSX) return Promise.resolve(window.XLSX);
+                return new Promise((resolve, reject) => {
+                    const sc = document.createElement('script');
+                    sc.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.mini.min.js';
+                    sc.integrity = 'sha384-6fBkVFQw1YKyYpZpKf7bguegzeJqso45fTePEWGNuVaGy70fxEhICA/yswrPjW4+';
+                    sc.crossOrigin = 'anonymous';
+                    sc.onload = () => (window.XLSX ? resolve(window.XLSX) : reject(new Error('xlsx')));
+                    sc.onerror = () => reject(new Error('xlsx'));
+                    document.head.appendChild(sc);
+                });
+            },
+
+            async baixarPlanilha(nomeArquivo, nomeAba, cabecalho, linhas, larguras) {
+                let XLSX;
+                try { XLSX = await this.carregarXlsx(); }
+                catch (_) { this.toast('Não foi possível carregar o gerador de planilhas. Verifique a internet.', true); return false; }
+                const ws = XLSX.utils.aoa_to_sheet([cabecalho, ...linhas]);
+                ws['!cols'] = larguras.map(w => ({ wch: w }));
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, nomeAba);
+                XLSX.writeFile(wb, nomeArquivo);
+                return true;
+            },
+
+            async exportarMembros() {
+                if (!this.perfil || this.perfil.papel !== 'admin') return;
+                const btn = document.getElementById('btn-exportar-membros');
+                btn.disabled = true;
+                const textoOriginal = btn.textContent;
+                btn.textContent = 'Exportando...';
+                try {
+                    const busca = document.getElementById('busca-nome').value.trim();
+                    const situacao = document.getElementById('filtro-situacao').value;
+                    const ministerio = document.getElementById('filtro-ministerio').value;
+
+                    const todos = [];
+                    for (let de = 0; ; de += 1000) {
+                        let q = db.from('membros').select('*, disc:discipulador_id(nome), celula:celula_id(nome)').is('excluido_em', null);
+                        if (busca) q = q.ilike('nome', `%${busca.replace(/[\\%_]/g, '\\$&')}%`);
+                        if (situacao) q = q.eq('situacao', situacao);
+                        if (ministerio) q = q.eq('ministerio', ministerio);
+                        const { data, error } = await q.order('nome', { ascending: true }).order('id', { ascending: true }).range(de, de + 999);
+                        if (error) { this.toast('Não foi possível exportar os membros.', true); return; }
+                        todos.push(...data);
+                        if (data.length < 1000) break;
+                    }
+                    if (todos.length === 0) { this.toast('Não há membros para exportar com este filtro.', true); return; }
+
+                    const linhas = todos.map(m => [
+                        m.nome || '',
+                        m.telefone || '',
+                        m.data_nascimento ? formatarData(m.data_nascimento) : '',
+                        m.ministerio || '',
+                        (m.celula && m.celula.nome) || '',
+                        (m.disc ? m.disc.nome : m.discipulador) || '',
+                        m.situacao || '',
+                        m.data_cadastro ? formatarData(m.data_cadastro) : ''
+                    ]);
+                    const ok = await this.baixarPlanilha(
+                        `membros-IBO-${hojeISO()}.xlsx`, 'Membros',
+                        ['Nome', 'Telefone', 'Nascimento', 'Ministério', 'Célula', 'Discipulador', 'Situação', 'Cadastro'],
+                        linhas, [34, 16, 12, 20, 22, 28, 12, 12]);
+                    if (ok) this.toast(`Planilha gerada com ${todos.length} membro(s).`);
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = textoOriginal;
+                }
+            },
+
+            async exportarAniversariantes() {
+                if (!this.perfil || this.perfil.papel !== 'admin') return;
+                const btn = document.getElementById('btn-exportar-aniversariantes');
+                btn.disabled = true;
+                const textoOriginal = btn.textContent;
+                btn.textContent = 'Exportando...';
+                try {
+                    const mes = parseInt(document.getElementById('filtro-mes').value, 10);
+                    const { data, error } = await db.rpc('aniversariantes', { p_mes: mes });
+                    if (error) { this.toast('Não foi possível exportar os aniversariantes.', true); return; }
+                    if (data.length === 0) { this.toast('Não há aniversariantes neste mês.', true); return; }
+
+                    const linhas = data.map(m => [
+                        m.nome || '',
+                        `${m.data_nascimento.substring(8, 10)}/${m.data_nascimento.substring(5, 7)}`,
+                        m.telefone || '',
+                        m.discipulador || ''
+                    ]);
+                    const nomeMes = MESES[mes - 1];
+                    const ok = await this.baixarPlanilha(
+                        `aniversariantes-${nomeMes}-IBO.xlsx`, 'Aniversariantes',
+                        ['Nome', 'Aniversário (DD/MM)', 'Telefone', 'Discipulador'],
+                        linhas, [34, 20, 16, 28]);
+                    if (ok) this.toast(`Planilha gerada com ${data.length} aniversariante(s).`);
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = textoOriginal;
+                }
+            },
+
             // ---------- Ministérios (administrador) ----------
             async renderMinisterios() {
                 const { data, error } = await db.from('ministerios').select('nome').order('nome');
@@ -1592,7 +1695,7 @@
                 document.getElementById('celula-lider').innerHTML = this.opcoesMembros(c.lider_id, null);
                 document.getElementById('celula-vice').innerHTML = this.opcoesMembros(c.vice_lider_id, null);
                 document.getElementById('celula-anfitriao').innerHTML = this.opcoesMembros(c.anfitriao_id, null);
-                document.getElementById('btn-excluir-celula').hidden = false;
+                document.getElementById('btn-excluir-celula').hidden = !(this.perfil && this.perfil.papel === 'admin');
                 document.getElementById('modal-celula').classList.add('aberto');
             },
 
@@ -1626,7 +1729,7 @@
             },
 
             async excluirCelula() {
-                if (!this.celulaEditando) return;
+                if (!this.celulaEditando || !this.perfil || this.perfil.papel !== 'admin') return;
                 if (!confirm(`Excluir a célula "${this.celulaEditando.nome}"? Os membros ligados a ela ficarão sem célula.`)) return;
                 const { error } = await db.from('celulas').delete().eq('id', this.celulaEditando.id);
                 if (error) { this.toast('Não foi possível excluir a célula.', true); return; }
@@ -1676,7 +1779,7 @@
                 document.getElementById('form-ministerio').value = m.ministerio;
                 document.getElementById('form-data-cadastro').value = m.data_cadastro;
                 document.getElementById('form-data-batismo').value = m.data_batismo || '';
-                document.getElementById('btn-excluir').hidden = false;
+                document.getElementById('btn-excluir').hidden = !(this.perfil && this.perfil.papel === 'admin');
 
                 const info = document.getElementById('ficha-info');
                 info.hidden = false;
@@ -1768,7 +1871,7 @@
             },
 
             async moverParaLixeira() {
-                if (!this.membroEditando) return;
+                if (!this.membroEditando || !this.perfil || this.perfil.papel !== 'admin') return;
                 if (!confirm(`Mover o cadastro de ${this.membroEditando.nome} para a lixeira? Você poderá restaurá-lo depois.`)) return;
 
                 const { error } = await db.from('membros')
