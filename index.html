@@ -159,6 +159,27 @@
         tr:hover { background-color: rgba(43,143,163,0.1); }
         .nome-clicavel { color: var(--cor-accent); cursor: pointer; font-weight: 500; }
         .nome-clicavel:hover { text-decoration: underline; }
+        .acessos-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+        .acessos-grupo { background: rgba(255,255,255,0.03); border: 1px solid var(--cor-borda); border-radius: 8px; padding: 12px 14px; }
+        .acessos-grupo h4 { font-size: 13px; margin-bottom: 6px; color: var(--cor-branco); }
+        .acessos-grupo label { display: flex; align-items: center; gap: 10px; font-size: 14px; padding: 4px 0; cursor: pointer; }
+        .acessos-grupo input { width: auto; }
+        .chip-acesso.ativo { background: var(--cor-accent); color: var(--cor-fundo); }
+        .btn-info {
+            width: 24px; height: 24px; border-radius: 50%; padding: 0;
+            border: 1.5px solid var(--cor-accent); background: transparent; color: var(--cor-accent);
+            font-size: 13px; font-weight: 600; line-height: 1; cursor: pointer;
+        }
+        .btn-info:hover, .btn-info.ativo { background: var(--cor-accent); color: var(--cor-fundo); }
+        td.col-info { text-align: right; width: 40px; }
+        .popover-info {
+            position: absolute; z-index: 60; width: 260px; max-width: calc(100vw - 24px);
+            background: var(--cor-card); border: 1px solid var(--cor-accent); border-radius: 8px;
+            padding: 10px 12px; font-size: 13px; line-height: 1.6; color: var(--cor-texto);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+        }
+        .popover-info .rotulo { color: var(--cor-texto-luz); font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; }
+        .popover-info .bloco + .bloco { margin-top: 8px; }
         .situacao-ativo { color: #4ade80; font-weight: 600; }
         .situacao-aguardando {
             color: #60a5fa; font-weight: 600;
@@ -436,15 +457,16 @@
             </div>
             <ul class="menu-itens">
                 <li class="menu-item ativo" data-secao="painel">Painel</li>
-                <li class="menu-item" data-secao="membros">Membros</li>
-                <li class="menu-item" data-secao="visitantes">Visitantes</li>
-                <li class="menu-item" data-secao="aniversariantes">Aniversariantes</li>
-                <li class="menu-item" data-secao="celulas">Células</li>
-                <li class="menu-item" data-secao="ministerios" data-admin hidden>Ministérios</li>
-                <li class="menu-item" data-secao="estatisticas">Estatísticas</li>
+                <li class="menu-item" data-secao="membros" data-perm="mv">Membros</li>
+                <li class="menu-item" data-secao="visitantes" data-perm="vv">Visitantes</li>
+                <li class="menu-item" data-secao="aniversariantes" data-perm="av">Aniversariantes</li>
+                <li class="menu-item" data-secao="celulas" data-perm="cv">Células</li>
+                <li class="menu-item" data-secao="ministerios" data-perm="nv">Ministérios</li>
+                <li class="menu-item" data-secao="estatisticas" data-perm="ev">Estatísticas</li>
                 <li class="menu-separador"></li>
-                <li class="menu-item" data-secao="lixeira">Lixeira</li>
-                <li class="menu-item" data-secao="usuarios" data-admin hidden>Usuários e acessos</li>
+                <li class="menu-item" data-secao="lixeira" data-perm="lx">Lixeira</li>
+                <li class="menu-item" data-secao="usuarios" data-admin hidden>Usuários</li>
+                <li class="menu-item" data-secao="acessos" data-admin hidden>Acessos</li>
             </ul>
             <div class="menu-rodape" id="menu-rodape"></div>
         </aside>
@@ -453,7 +475,7 @@
             <div class="header">
                 <h1 id="titulo-secao">Painel</h1>
                 <div class="header-acoes">
-                    <button class="botao botao-primario" onclick="app.abrirNovoMembro()">+ Novo</button>
+                    <button class="botao botao-primario" id="btn-novo-cadastro" onclick="app.abrirNovoMembro()">+ Novo</button>
                     <button class="botao botao-secundario" onclick="app.sair()">Sair</button>
                 </div>
             </div>
@@ -461,6 +483,10 @@
             <div class="area-conteudo" id="area-conteudo">
                 <!-- Painel -->
                 <div id="painel" class="abas ativa">
+                    <div class="aviso-aprovacao" id="aviso-pedidos-min" hidden>
+                        <span id="aviso-pedidos-min-texto"></span>
+                        <button class="botao botao-pequeno botao-primario" onclick="app.mudarSecao('ministerios')">Ver pedidos</button>
+                    </div>
                     <div class="aviso-aprovacao" id="aviso-aprovacao" hidden>
                         <span id="aviso-aprovacao-texto"></span>
                         <button class="botao botao-primario botao-pequeno" onclick="app.verAguardando()">Ver cadastros</button>
@@ -478,7 +504,7 @@
                                 <thead>
                                     <tr>
                                         <th>Nome</th><th>Telefone</th><th>Data de Nascimento</th>
-                                        <th>Ministério</th><th>Cadastro</th><th>Situação</th>
+                                        <th>Ministério</th><th>Cadastro</th><th>Situação</th><th></th>
                                     </tr>
                                 </thead>
                                 <tbody id="tabela-recentes"></tbody>
@@ -504,14 +530,14 @@
                             <select class="select-filtro" id="filtro-ministerio">
                                 <option value="">Todos os ministérios</option>
                             </select>
-                            <button class="botao botao-secundario" data-admin hidden id="btn-exportar-membros" onclick="app.exportarMembros()">⬇ Exportar Excel</button>
+                            <button class="botao botao-secundario" data-perm="mx" hidden id="btn-exportar-membros" onclick="app.exportarMembros()">⬇ Exportar Excel</button>
                         </div>
                         <div class="tabela-container">
                             <table>
                                 <thead>
                                     <tr>
                                         <th>Nome</th><th>Telefone</th><th>Data de Nascimento</th>
-                                        <th>Ministério</th><th>Cadastro</th><th>Célula</th><th>Discipulador</th><th>Situação</th>
+                                        <th>Ministério</th><th>Cadastro</th><th>Célula</th><th>Discipulador</th><th>Situação</th><th></th>
                                     </tr>
                                 </thead>
                                 <tbody id="tabela-membros"></tbody>
@@ -540,7 +566,7 @@
                         <div class="tabela-container">
                             <table>
                                 <thead>
-                                    <tr><th>Nome</th><th>Telefone</th><th>Cadastro</th><th>Status</th><th>Responsável</th><th>Último contato</th></tr>
+                                    <tr><th>Nome</th><th>Telefone</th><th>Cadastro</th><th>Status</th><th>Responsável</th><th>Último contato</th><th></th></tr>
                                 </thead>
                                 <tbody id="tabela-visitantes"></tbody>
                             </table>
@@ -561,12 +587,12 @@
                                 <option value="membros">Membros</option>
                                 <option value="visitantes">Visitantes</option>
                             </select>
-                            <button class="botao botao-secundario" data-admin hidden id="btn-exportar-aniversariantes" onclick="app.exportarAniversariantes()">⬇ Exportar Excel</button>
+                            <button class="botao botao-secundario" data-perm="ax" hidden id="btn-exportar-aniversariantes" onclick="app.exportarAniversariantes()">⬇ Exportar Excel</button>
                         </div>
                         <div class="tabela-container">
                             <table>
                                 <thead>
-                                    <tr><th>Nome</th><th>Aniversário (DD/MM)</th><th>Telefone</th><th>Situação</th><th>Discipulador</th></tr>
+                                    <tr><th>Nome</th><th>Aniversário (DD/MM)</th><th>Telefone</th><th>Situação</th><th>Discipulador</th><th></th></tr>
                                 </thead>
                                 <tbody id="tabela-aniversariantes"></tbody>
                             </table>
@@ -593,6 +619,11 @@
                         <div class="stats-grid" id="estatistica-discipulado"></div>
                         <p style="color: var(--cor-texto-luz); font-size: 12px; margin-top: 16px;">O mesmo nome de discipulador é contado uma só vez, mesmo que acompanhe mais de uma pessoa.</p>
                     </div>
+                    <div class="stats-section">
+                        <h3>Ministérios</h3>
+                        <div class="stats-grid" id="estatistica-ministerios-resumo"></div>
+                        <div class="stats-grid" id="estatistica-ministerios-lista" style="margin-top:12px"></div>
+                    </div>
                 </div>
 
                 <!-- Lixeira -->
@@ -616,7 +647,7 @@
                 <div id="celulas" class="abas">
                     <div class="secao-lista">
                         <h2>Células</h2>
-                        <div style="margin-bottom:16px"><button class="botao botao-primario" onclick="app.abrirNovaCelula()">+ Nova célula</button></div>
+                        <div style="margin-bottom:16px"><button class="botao botao-primario" data-perm="ce" hidden onclick="app.abrirNovaCelula()">+ Nova célula</button></div>
                         <div class="tabela-container">
                             <table>
                                 <thead>
@@ -633,8 +664,19 @@
                 <div id="ministerios" class="abas">
                     <div class="secao-lista">
                         <h2>Ministérios</h2>
-                        <p class="descricao">Renomear atualiza todos os membros do ministério. Ao apagar, os membros passam para "Nenhum".</p>
-                        <div style="margin-bottom:16px"><button class="botao botao-primario" onclick="app.abrirNovoMinisterio()">+ Novo ministério</button></div>
+                        <p class="descricao" id="descricao-ministerios">Renomear atualiza todos os membros do ministério. Ao apagar, os membros passam para "Nenhum".</p>
+                        <div id="bloco-pedidos-min" hidden style="margin-bottom:20px">
+                            <h3 style="font-size:15px;margin-bottom:8px">Pedidos de alteração</h3>
+                            <div class="tabela-container">
+                                <table>
+                                    <thead>
+                                        <tr><th>Pedido</th><th>Solicitado por</th><th>Status</th><th>Ações</th></tr>
+                                    </thead>
+                                    <tbody id="tabela-pedidos-min"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div style="margin-bottom:16px"><button class="botao botao-primario" id="btn-novo-ministerio" onclick="app.abrirNovoMinisterio()">+ Novo ministério</button></div>
                         <div class="tabela-container">
                             <table>
                                 <thead>
@@ -650,7 +692,7 @@
                 <!-- Usuários e acessos (administrador) -->
                 <div id="usuarios" class="abas">
                     <div class="secao-lista">
-                        <h2>Usuários e acessos</h2>
+                        <h2>Usuários</h2>
                         <p class="descricao">Crie a conta da pessoa aqui, com uma senha provisória, e passe o e-mail e a senha para ela. Depois ela pode trocar a senha em "Esqueci minha senha".</p>
                         <div style="margin-bottom:16px"><button class="botao botao-primario" onclick="app.abrirNovoUsuario()">+ Novo usuário</button></div>
                         <div class="tabela-container">
@@ -665,16 +707,31 @@
                     </div>
                 </div>
 
+                <!-- Acessos (administrador) -->
+                <div id="acessos" class="abas">
+                    <div class="secao-lista">
+                        <h2>Acessos</h2>
+                        <p class="descricao">Escolha o acesso e marque o que ele pode fazer. As mudanças valem na próxima vez que a pessoa abrir o painel. O Líder só vê os dados da própria célula.</p>
+                        <div class="busca-filtros" id="acessos-chips" style="margin-bottom:12px;flex-direction:row;flex-wrap:wrap"></div>
+                        <p class="descricao" id="acessos-desc"></p>
+                        <div id="acessos-lista" class="acessos-grid"></div>
+                        <div style="margin-top:16px;display:flex;gap:12px;align-items:center">
+                            <button class="botao botao-primario" id="btn-salvar-acessos" onclick="app.salvarAcessos()">Salvar configuração</button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Mais (celular) -->
                 <div id="mais" class="abas">
                     <div class="secao-lista">
                         <h2>Mais opções</h2>
                         <div class="lista-mais">
-                            <button class="botao botao-secundario" onclick="app.mudarSecao('celulas')">🏠 Células</button>
-                            <button class="botao botao-secundario" onclick="app.mudarSecao('estatisticas')">📊 Estatísticas</button>
-                            <button class="botao botao-secundario" data-admin hidden onclick="app.mudarSecao('ministerios')">🏷️ Ministérios</button>
-                            <button class="botao botao-secundario" onclick="app.mudarSecao('lixeira')">🗑️ Lixeira</button>
-                            <button class="botao botao-secundario" data-admin hidden onclick="app.mudarSecao('usuarios')">👤 Usuários e acessos</button>
+                            <button class="botao botao-secundario" data-perm="cv" onclick="app.mudarSecao('celulas')">🏠 Células</button>
+                            <button class="botao botao-secundario" data-perm="ev" onclick="app.mudarSecao('estatisticas')">📊 Estatísticas</button>
+                            <button class="botao botao-secundario" data-perm="nv" onclick="app.mudarSecao('ministerios')">🏷️ Ministérios</button>
+                            <button class="botao botao-secundario" data-perm="lx" onclick="app.mudarSecao('lixeira')">🗑️ Lixeira</button>
+                            <button class="botao botao-secundario" data-admin hidden onclick="app.mudarSecao('usuarios')">👤 Usuários</button>
+                            <button class="botao botao-secundario" data-admin hidden onclick="app.mudarSecao('acessos')">🔐 Acessos</button>
                             <button class="botao botao-secundario" onclick="app.sair()">🚪 Sair</button>
                         </div>
                     </div>
@@ -686,9 +743,9 @@
     <!-- Menu inferior (mobile) -->
     <nav class="menu-mobile" id="menu-mobile" hidden>
         <button class="ativo" data-secao="painel"><span class="ico">🏠</span>Painel</button>
-        <button data-secao="membros"><span class="ico">👥</span>Membros</button>
-        <button data-secao="visitantes"><span class="ico">🤝</span>Visitantes</button>
-        <button data-secao="aniversariantes"><span class="ico">🎂</span>Aniversários</button>
+        <button data-secao="membros" data-perm="mv"><span class="ico">👥</span>Membros</button>
+        <button data-secao="visitantes" data-perm="vv"><span class="ico">🤝</span>Visitantes</button>
+        <button data-secao="aniversariantes" data-perm="av"><span class="ico">🎂</span>Aniversários</button>
         <button data-secao="mais"><span class="ico">⋯</span>Mais</button>
     </nav>
 
@@ -715,10 +772,16 @@
                 </div>
                 <div class="form-grupo">
                     <label>Acesso *</label>
-                    <select id="usuario-papel">
+                    <select id="usuario-papel" onchange="document.getElementById('usuario-celula-grupo').hidden = this.value !== 'lider'">
                         <option value="secretaria">Secretaria</option>
+                        <option value="jornada">Jornada</option>
+                        <option value="lider">Líder</option>
                         <option value="admin">Administrador</option>
                     </select>
+                </div>
+                <div class="form-grupo" id="usuario-celula-grupo" hidden>
+                    <label>Célula do líder *</label>
+                    <select id="usuario-celula"></select>
                 </div>
                 <div class="botoes-modal">
                     <button type="button" class="botao botao-secundario" onclick="app.fecharNovoUsuario()">Cancelar</button>
@@ -763,6 +826,7 @@
                 <div class="botoes-modal">
                     <button type="button" class="botao botao-secundario" onclick="app.abrirFichaDoAcompanhamento()">Ver ficha</button>
                     <button type="button" class="botao botao-secundario" id="btn-tornar-membro" onclick="app.tornarMembro()">Tornar membro</button>
+                    <button type="button" class="botao botao-perigo" id="btn-apagar-visitante" onclick="app.apagarVisitante()" hidden>Apagar</button>
                     <button type="button" class="botao botao-secundario" onclick="app.fecharAcompanhamento()">Cancelar</button>
                     <button type="submit" class="botao botao-primario" id="btn-salvar-acomp">Salvar</button>
                 </div>
@@ -875,17 +939,16 @@
                 <div class="form-linha">
                     <div class="form-grupo">
                         <label>Gênero</label>
-                        <select id="form-genero">
-                            <option value="Não informado">Não informado</option>
+                        <select id="form-genero" required>
+                            <option value="" selected disabled>Selecione</option>
                             <option value="Masculino">Masculino</option>
                             <option value="Feminino">Feminino</option>
-                            <option value="Outro">Outro</option>
                         </select>
                     </div>
                     <div class="form-grupo">
                         <label>Estado civil</label>
-                        <select id="form-estado-civil">
-                            <option value="Não informado">Não informado</option>
+                        <select id="form-estado-civil" required>
+                            <option value="" selected disabled>Selecione</option>
                             <option value="Solteiro(a)">Solteiro(a)</option>
                             <option value="Casado(a)">Casado(a)</option>
                             <option value="União estável">União estável</option>
@@ -978,7 +1041,15 @@
             criar: 'Cadastro criado', editar: 'Cadastro editado', excluir: 'Movido para a lixeira',
             restaurar: 'Restaurado da lixeira', excluir_definitivo: 'Excluído definitivamente'
         };
-        const ROTULOS_PAPEL = { admin: 'Administrador', secretaria: 'Secretaria', pendente: 'Sem acesso (pendente)' };
+        const GRUPOS_ACESSO = [
+            ['Membros', [['mv', 'Ver'], ['mc', 'Cadastrar (sem aprovação)'], ['me', 'Editar'], ['ma', 'Aprovar cadastros do link público'], ['md', 'Apagar (vai para a lixeira)'], ['mx', 'Exportar Excel']]],
+            ['Visitantes', [['vv', 'Ver'], ['ve', 'Editar acompanhamento'], ['vt', 'Tornar membro'], ['vd', 'Apagar (vai para a lixeira)']]],
+            ['Aniversariantes', [['av', 'Ver'], ['ax', 'Exportar Excel']]],
+            ['Células', [['cv', 'Ver'], ['ce', 'Cadastrar e editar'], ['cd', 'Apagar']]],
+            ['Ministérios', [['nv', 'Ver'], ['np', 'Pedir alteração (com aprovação)'], ['nd', 'Alterar direto e aprovar pedidos']]],
+            ['Outros', [['ev', 'Estatísticas'], ['lx', 'Lixeira (ver e restaurar)']]]
+        ];
+        const ROTULOS_PAPEL = { admin: 'Administrador', secretaria: 'Secretaria', jornada: 'Jornada', lider: 'Líder', pendente: 'Sem acesso (pendente)' };
 
         // Escapa texto antes de inserir em HTML (os dados do formulário público não são confiáveis)
         function esc(valor) {
@@ -1062,15 +1133,17 @@
                 if (!usuario) { this.mostrarTela('login'); return; }
 
                 const { data: perfil, error } = await db
-                    .from('perfis').select('papel,nome').eq('user_id', usuario.id).maybeSingle();
+                    .from('perfis').select('papel,nome,celula_id').eq('user_id', usuario.id).maybeSingle();
 
                 if (error || !perfil || perfil.papel === 'pendente') {
                     this.mostrarTela('pendente');
                     return;
                 }
 
-                this.perfil = { id: usuario.id, email: usuario.email, papel: perfil.papel, nome: perfil.nome };
-                document.querySelectorAll('[data-admin]').forEach(el => { el.hidden = this.perfil.papel !== 'admin'; });
+                this.perfil = { id: usuario.id, email: usuario.email, papel: perfil.papel, nome: perfil.nome, celula_id: perfil.celula_id || null };
+                const pm = await db.rpc('minhas_permissoes');
+                this.perms = new Set(Array.isArray(pm.data) ? pm.data : []);
+                this.aplicarPermissoes();
                 document.getElementById('menu-rodape').textContent = `${perfil.nome ? perfil.nome + ' · ' : ''}${usuario.email} · ${ROTULOS_PAPEL[perfil.papel]}`;
 
                 this.mostrarTela('app');
@@ -1184,21 +1257,37 @@
                 ).join('');
             },
 
+            can(codigo) {
+                if (!this.perfil) return false;
+                if (this.perfil.papel === 'admin') return true;
+                return !!(this.perms && this.perms.has(codigo));
+            },
+
+            aplicarPermissoes() {
+                const admin = this.perfil.papel === 'admin';
+                document.querySelectorAll('[data-admin]').forEach(el => { el.hidden = !admin; });
+                document.querySelectorAll('[data-perm]').forEach(el => { el.hidden = !this.can(el.getAttribute('data-perm')); });
+                const novo = document.getElementById('btn-novo-cadastro');
+                if (novo) novo.hidden = !(this.can('mc') || this.can('ve'));
+            },
+
             mudarSecao(secao) {
-                if ((secao === 'usuarios' || secao === 'ministerios') && (!this.perfil || this.perfil.papel !== 'admin')) return;
+                const exigencia = { membros: 'mv', visitantes: 'vv', aniversariantes: 'av', celulas: 'cv', ministerios: 'nv', estatisticas: 'ev', lixeira: 'lx' };
+                if ((secao === 'usuarios' || secao === 'acessos') && (!this.perfil || this.perfil.papel !== 'admin')) return;
+                if (exigencia[secao] && !this.can(exigencia[secao])) return;
                 this.secaoAtual = secao;
                 document.querySelectorAll('.abas').forEach(aba => aba.classList.remove('ativa'));
                 document.getElementById(secao).classList.add('ativa');
                 document.querySelectorAll('[data-secao]').forEach(i => {
                     const alvo = i.getAttribute('data-secao');
                     // no celular, Lixeira e Usuários ficam dentro de "Mais"
-                    const ativo = alvo === secao || (alvo === 'mais' && (secao === 'lixeira' || secao === 'usuarios' || secao === 'celulas' || secao === 'ministerios' || secao === 'estatisticas'));
+                    const ativo = alvo === secao || (alvo === 'mais' && (secao === 'lixeira' || secao === 'usuarios' || secao === 'acessos' || secao === 'celulas' || secao === 'ministerios' || secao === 'estatisticas'));
                     if (i.closest('.menu-mobile') || i.classList.contains('menu-item')) i.classList.toggle('ativo', ativo);
                 });
 
                 const titulos = {
                     painel: 'Painel', membros: 'Membros', aniversariantes: 'Aniversariantes', visitantes: 'Visitantes', celulas: 'Células', ministerios: 'Ministérios',
-                    estatisticas: 'Estatísticas', lixeira: 'Lixeira', usuarios: 'Usuários e acessos', mais: 'Mais'
+                    estatisticas: 'Estatísticas', lixeira: 'Lixeira', usuarios: 'Usuários', acessos: 'Acessos', mais: 'Mais'
                 };
                 document.getElementById('titulo-secao').textContent = titulos[secao];
                 document.getElementById('area-conteudo').scrollTop = 0;
@@ -1216,9 +1305,55 @@
                 if (s === 'estatisticas') this.renderEstatisticas();
                 if (s === 'lixeira') this.renderLixeira();
                 if (s === 'usuarios') this.renderUsuarios();
+                if (s === 'acessos') this.renderAcessos();
             },
 
             // ---------- Renderização ----------
+            infoHtml(id) {
+                if (!this.perfil || !['admin', 'secretaria', 'jornada'].includes(this.perfil.papel)) return '';
+                return `<button type="button" class="btn-info" aria-label="Ver quem cadastrou e quem editou" onclick="app.verHistorico(${Number(id)}, this)">!</button>`;
+            },
+
+            fecharHistorico() {
+                const p = document.getElementById('popover-info');
+                if (p) p.remove();
+                document.querySelectorAll('.btn-info.ativo').forEach(b => b.classList.remove('ativo'));
+            },
+
+            async verHistorico(id, botao) {
+                const jaAberto = botao.classList.contains('ativo');
+                this.fecharHistorico();
+                if (jaAberto) return;
+                botao.classList.add('ativo');
+                const pop = document.createElement('div');
+                pop.id = 'popover-info';
+                pop.className = 'popover-info';
+                pop.textContent = 'Carregando…';
+                document.body.appendChild(pop);
+                const posicionar = () => {
+                    const r = botao.getBoundingClientRect();
+                    const largura = pop.offsetWidth;
+                    let esquerda = r.right + window.scrollX - largura;
+                    esquerda = Math.max(window.scrollX + 8, esquerda);
+                    pop.style.left = esquerda + 'px';
+                    pop.style.top = (r.bottom + window.scrollY + 6) + 'px';
+                };
+                posicionar();
+                const { data, error } = await db.rpc('historico_registro', { p_id: id });
+                if (!document.getElementById('popover-info')) return;
+                const h = data && data[0];
+                if (error || !h) {
+                    pop.textContent = 'Não foi possível carregar o histórico.';
+                } else {
+                    const criador = h.criado_por || 'Formulário público ou registro antigo';
+                    const editado = h.editado_em
+                        ? `<div class="bloco"><div class="rotulo">Editado por</div>${esc(h.editado_por || 'Não identificado')}<br>${formatarDataHora(h.editado_em)}</div>`
+                        : `<div class="bloco"><div class="rotulo">Editado por</div>Nunca editado</div>`;
+                    pop.innerHTML = `<div class="bloco"><div class="rotulo">Cadastrado por</div>${esc(criador)}<br>${formatarDataHora(h.criado_em)}</div>${editado}`;
+                }
+                posicionar();
+            },
+
             situacaoHtml(situacao) {
                 const cls = { Ativo: 'situacao-ativo', Visitante: 'situacao-visitante', Inativo: 'situacao-inativo', 'Aguardando aprovação': 'situacao-aguardando' }[situacao] || '';
                 return `<span class="${cls}">${esc(situacao)}</span>`;
@@ -1240,6 +1375,13 @@
                 document.getElementById('total-inativos').textContent = resumo.data.inativos;
                 const aguardando = resumo.data.aguardando || 0;
                 document.getElementById('aviso-aprovacao').hidden = aguardando === 0;
+                if (this.can('nd')) {
+                    const pm = await db.from('ministerio_pedidos').select('id', { count: 'exact', head: true }).eq('status', 'pendente');
+                    const n = pm.error ? 0 : (pm.count || 0);
+                    document.getElementById('aviso-pedidos-min').hidden = n === 0;
+                    document.getElementById('aviso-pedidos-min-texto').textContent =
+                        `${n} pedido${n === 1 ? '' : 's'} de alteração de ministério aguardando aprovação`;
+                }
                 document.getElementById('aviso-aprovacao-texto').textContent =
                     `${aguardando} cadastro${aguardando === 1 ? '' : 's'} de membro aguardando aprovação`;
 
@@ -1251,6 +1393,7 @@
                         <td data-label="Ministério">${esc(m.ministerio)}</td>
                         <td data-label="Cadastro">${formatarData(m.data_cadastro)}</td>
                         <td data-label="Situação">${this.situacaoHtml(m.situacao)}</td>
+                        <td class="col-info" data-label="Histórico">${this.infoHtml(m.id)}</td>
                     </tr>`).join('');
             },
 
@@ -1300,6 +1443,7 @@
                         <td data-label="Célula">${esc(m.celula && m.celula.nome) || '—'}</td>
                         <td data-label="Discipulador">${esc(m.disc ? m.disc.nome : m.discipulador) || '—'}</td>
                         <td data-label="Situação">${this.situacaoHtml(m.situacao)}</td>
+                        <td class="col-info" data-label="Histórico">${this.infoHtml(m.id)}</td>
                     </tr>`).join('');
 
                 const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA));
@@ -1343,6 +1487,7 @@
                         <td data-label="Telefone">${esc(m.telefone) || '—'}</td>
                         <td data-label="Situação">${this.situacaoHtml(m.situacao)}</td>
                         <td data-label="Discipulador">${esc(m.discipulador) || '—'}</td>
+                        <td class="col-info" data-label="Histórico">${this.infoHtml(m.id)}</td>
                     </tr>`;
                 }).join('');
             },
@@ -1375,6 +1520,23 @@
                     card('Discipuladores', s.discipuladores, 'Distintos') +
                     card('Com discipulador', s.com_discipulador, 'Membros acompanhados') +
                     card('Sem discipulador', s.sem_discipulador, 'Sem acompanhamento');
+
+                // Ministérios: membros ativos vinculados e não vinculados
+                const base = () => db.from('membros').select('id', { count: 'exact', head: true }).is('excluido_em', null).eq('situacao', 'Ativo');
+                const nomes = (this.listaMinisterios || []).filter(n => n !== 'Nenhum');
+                const [com, sem, ...porMin] = await Promise.all([
+                    base().neq('ministerio', 'Nenhum'),
+                    base().eq('ministerio', 'Nenhum'),
+                    ...nomes.map(n => base().eq('ministerio', n))
+                ]);
+                if (this.secaoAtual !== 'estatisticas') return;
+                document.getElementById('estatistica-ministerios-resumo').innerHTML =
+                    card('Em ministérios', com.count ?? 0, 'Membros vinculados') +
+                    card('Sem ministério', sem.count ?? 0, 'Membros não vinculados');
+                document.getElementById('estatistica-ministerios-lista').innerHTML = nomes
+                    .map((n, i) => ({ n, c: porMin[i].count ?? 0 }))
+                    .sort((a, b) => b.c - a.c || a.n.localeCompare(b.n, 'pt-BR'))
+                    .map(x => card(esc(x.n), x.c, 'Membros')).join('');
             },
 
             async renderLixeira() {
@@ -1405,7 +1567,7 @@
             },
 
             async renderUsuarios() {
-                const { data, error } = await db.from('perfis').select('user_id,email,papel,nome').order('email');
+                const { data, error } = await db.from('perfis').select('user_id,email,papel,nome,celula_id').order('email');
                 if (error) { this.toast('Erro ao carregar os usuários.', true); return; }
 
                 const tbody = document.getElementById('tabela-usuarios');
@@ -1426,8 +1588,12 @@
                         </td>
                         <td data-label="E-mail">${esc(u.email)}${euMesmo ? ' (você)' : ''}</td>
                         <td data-label="Acesso">
-                            <select class="select-filtro" id="papel-${esc(u.user_id)}" ${euMesmo ? 'disabled' : ''}>
+                            <select class="select-filtro" id="papel-${esc(u.user_id)}" ${euMesmo ? 'disabled' : ''} onchange="app.alternarCelulaUsuario('${esc(u.user_id)}')">
                                 ${Object.keys(ROTULOS_PAPEL).map(p => `<option value="${p}"${p === u.papel ? ' selected' : ''}>${ROTULOS_PAPEL[p]}</option>`).join('')}
+                            </select>
+                            <select class="select-filtro" id="cel-${esc(u.user_id)}" style="margin-top:6px" ${u.papel === 'lider' ? '' : 'hidden'} ${euMesmo ? 'disabled' : ''}>
+                                <option value="">Escolha a célula</option>
+                                ${(this.listaCelulas || []).map(c => `<option value="${Number(c.id)}"${Number(u.celula_id) === Number(c.id) ? ' selected' : ''}>${esc(c.nome)}</option>`).join('')}
                             </select>
                         </td>
                         <td data-label="Ações">
@@ -1437,12 +1603,74 @@
                 }).join('');
             },
 
+            // ---------- Acessos (administrador) ----------
+            async renderAcessos() {
+                const { data, error } = await db.from('permissoes_acesso').select('papel,permissao');
+                if (error) { this.toast('Erro ao carregar os acessos.', true); return; }
+                this.acessosDados = { secretaria: new Set(), jornada: new Set(), lider: new Set() };
+                (data || []).forEach(r => { if (this.acessosDados[r.papel]) this.acessosDados[r.papel].add(r.permissao); });
+                this.acessoSel = this.acessoSel || 'secretaria';
+                this.desenharAcessos();
+            },
+
+            desenharAcessos() {
+                const sel = this.acessoSel;
+                const rot = { admin: 'Administrador', secretaria: 'Secretaria', jornada: 'Jornada', lider: 'Líder' };
+                const desc = {
+                    admin: 'Acesso total. Não pode ser reduzido.',
+                    secretaria: 'Rotina da secretaria.',
+                    jornada: 'Cadastra membros e apaga visitantes sem aprovação (conforme as caixas).',
+                    lider: 'Consulta. Vê apenas os dados da própria célula.'
+                };
+                document.getElementById('acessos-chips').innerHTML = Object.keys(rot).map(k =>
+                    `<button type="button" class="botao botao-secundario chip-acesso${k === sel ? ' ativo' : ''}" onclick="app.escolherAcesso('${k}')">${rot[k]}</button>`).join('');
+                document.getElementById('acessos-desc').textContent = desc[sel];
+                const trava = sel === 'admin';
+                const marcadas = trava ? null : this.acessosDados[sel];
+                document.getElementById('acessos-lista').innerHTML = GRUPOS_ACESSO.map(g => `
+                    <div class="acessos-grupo"><h4>${esc(g[0])}</h4>
+                    ${g[1].map(i => `<label><input type="checkbox" data-perm-cod="${i[0]}" ${trava || marcadas.has(i[0]) ? 'checked' : ''} ${trava ? 'disabled' : ''}><span>${esc(i[1])}</span></label>`).join('')}
+                    </div>`).join('');
+                document.getElementById('btn-salvar-acessos').hidden = trava;
+                document.querySelectorAll('#acessos-lista input[data-perm-cod]').forEach(cb => {
+                    cb.addEventListener('change', () => {
+                        const set = this.acessosDados[this.acessoSel];
+                        if (cb.checked) set.add(cb.getAttribute('data-perm-cod')); else set.delete(cb.getAttribute('data-perm-cod'));
+                    });
+                });
+            },
+
+            escolherAcesso(k) {
+                this.acessoSel = k;
+                this.desenharAcessos();
+            },
+
+            async salvarAcessos() {
+                if (!this.perfil || this.perfil.papel !== 'admin' || this.acessoSel === 'admin') return;
+                const btn = document.getElementById('btn-salvar-acessos');
+                btn.disabled = true;
+                const { error } = await db.rpc('salvar_permissoes', { p_papel: this.acessoSel, p_permissoes: [...this.acessosDados[this.acessoSel]] });
+                btn.disabled = false;
+                if (error) { this.toast('Não foi possível salvar os acessos.', true); return; }
+                this.toast('Acessos salvos. Valem na próxima vez que a pessoa abrir o painel.');
+            },
+
+            alternarCelulaUsuario(userId) {
+                const lider = document.getElementById(`papel-${userId}`).value === 'lider';
+                document.getElementById(`cel-${userId}`).hidden = !lider;
+            },
+
             // ---------- Ações de usuários e lixeira ----------
             async salvarUsuario(userId, euMesmo) {
                 const nome = document.getElementById(`nome-${userId}`).value.trim();
                 if (nome.length > 120) { this.toast('O nome pode ter no máximo 120 caracteres.', true); return; }
                 const dados = { nome: nome || null };
-                if (!euMesmo) dados.papel = document.getElementById(`papel-${userId}`).value;
+                if (!euMesmo) {
+                    dados.papel = document.getElementById(`papel-${userId}`).value;
+                    const cel = document.getElementById(`cel-${userId}`).value;
+                    if (dados.papel === 'lider' && !cel) { this.toast('Escolha a célula do líder.', true); return; }
+                    dados.celula_id = dados.papel === 'lider' ? Number(cel) : null;
+                }
                 const { error } = await db.from('perfis').update(dados).eq('user_id', userId);
                 if (error) { this.toast('Não foi possível salvar o usuário.', true); return; }
                 if (euMesmo) {
@@ -1456,6 +1684,9 @@
 
             abrirNovoUsuario() {
                 document.getElementById('form-usuario').reset();
+                document.getElementById('usuario-celula-grupo').hidden = true;
+                document.getElementById('usuario-celula').innerHTML = '<option value="">Escolha a célula</option>' +
+                    (this.listaCelulas || []).map(c => `<option value="${Number(c.id)}">${esc(c.nome)}</option>`).join('');
                 document.getElementById('modal-usuario').classList.add('aberto');
             },
 
@@ -1468,6 +1699,9 @@
                 e.preventDefault();
                 if (!this.perfil || this.perfil.papel !== 'admin') return;
                 const btn = document.getElementById('btn-criar-usuario');
+                const papelNovo = document.getElementById('usuario-papel').value;
+                const celulaNova = document.getElementById('usuario-celula').value;
+                if (papelNovo === 'lider' && !celulaNova) { this.toast('Escolha a célula do líder.', true); return; }
                 btn.disabled = true;
                 try {
                     const { data, error } = await db.functions.invoke('criar-usuario', {
@@ -1475,7 +1709,8 @@
                             nome: document.getElementById('usuario-nome').value.trim(),
                             email: document.getElementById('usuario-email').value.trim(),
                             senha: document.getElementById('usuario-senha').value,
-                            papel: document.getElementById('usuario-papel').value
+                            papel: papelNovo,
+                            celula_id: papelNovo === 'lider' ? Number(celulaNova) : null
                         }
                     });
                     if (error) {
@@ -1497,6 +1732,7 @@
             },
 
             async restaurar(id) {
+                if (!this.can('lx')) return;
                 const { error } = await db.from('membros').update({ excluido_em: null }).eq('id', id);
                 if (error) { this.toast('Não foi possível restaurar.', true); return; }
                 this.toast('Cadastro restaurado.');
@@ -1576,11 +1812,14 @@
             },
 
             async aprovarCadastro() {
-                if (!this.membroEditando) return;
-                const { error } = await db.from('membros').update({ situacao: 'Ativo' }).eq('id', this.membroEditando.id);
+                if (!this.membroEditando || !this.can('ma')) return;
+                const m = this.membroEditando;
+                const dados = { situacao: 'Ativo' };
+                if (m.ministerio_interesse && m.ministerio === 'Nenhum') dados.ministerio = m.ministerio_interesse;
+                const { error } = await db.from('membros').update(dados).eq('id', m.id);
                 if (error) { this.toast('Não foi possível aprovar o cadastro.', true); return; }
                 this.fecharModal();
-                this.toast('Cadastro aprovado. A pessoa agora é membro Ativo.');
+                this.toast(dados.ministerio ? `Cadastro aprovado. Vinculado ao ministério ${dados.ministerio}.` : 'Cadastro aprovado. A pessoa agora é membro Ativo.');
                 this.renderizarSecaoAtual();
             },
 
@@ -1627,6 +1866,7 @@
                         <td data-label="Status">${esc(m.acomp_status || 'Novo')}</td>
                         <td data-label="Responsável">${esc(m.resp && m.resp.nome) || '—'}</td>
                         <td data-label="Último contato">${m.ultimo_contato ? formatarData(m.ultimo_contato) : '—'}</td>
+                        <td class="col-info" data-label="Histórico">${this.infoHtml(m.id)}</td>
                     </tr>`).join('');
 
                 const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA));
@@ -1658,12 +1898,26 @@
                 document.getElementById('acomp-ultimo-contato').value = m.ultimo_contato || '';
                 document.getElementById('acomp-responsavel').innerHTML = this.opcoesMembros(m.responsavel_id, m.id);
                 document.getElementById('acomp-observacoes').value = m.observacoes || '';
+                this.travarCampos('form-acomp', 'btn-salvar-acomp', this.can('ve'));
+                document.getElementById('btn-tornar-membro').hidden = !this.can('vt');
+                document.getElementById('btn-apagar-visitante').hidden = !this.can('vd');
                 document.getElementById('modal-acomp').classList.add('aberto');
+            },
+
+            async apagarVisitante() {
+                const m = this.visitanteEditando;
+                if (!m || !this.can('vd')) return;
+                if (!confirm(`Apagar o visitante ${m.nome}? Ele vai para a lixeira e pode ser restaurado.`)) return;
+                const { error } = await db.from('membros').update({ excluido_em: new Date().toISOString() }).eq('id', m.id);
+                if (error) { this.toast('Não foi possível apagar o visitante.', true); return; }
+                this.fecharAcompanhamento();
+                this.toast('Visitante apagado.');
+                this.renderizarSecaoAtual();
             },
 
             async salvarAcompanhamento(event) {
                 event.preventDefault();
-                if (!this.visitanteEditando) return;
+                if (!this.visitanteEditando || !this.can('ve')) return;
                 const resp = document.getElementById('acomp-responsavel').value;
                 const dados = {
                     acomp_status: document.getElementById('acomp-status').value,
@@ -1683,7 +1937,7 @@
 
             async tornarMembro() {
                 const m = this.visitanteEditando;
-                if (!m) return;
+                if (!m || !this.can('vt')) return;
                 if (!confirm(`Tornar ${m.nome} um membro Ativo? Ela(e) sai da lista de visitantes.`)) return;
                 const { error } = await db.from('membros').update({ situacao: 'Ativo', acomp_status: 'Integrado' }).eq('id', m.id);
                 if (error) { this.toast('Não foi possível tornar membro.', true); return; }
@@ -1732,7 +1986,7 @@
             },
 
             async exportarMembros() {
-                if (!this.perfil || this.perfil.papel !== 'admin') return;
+                if (!this.can('mx')) return;
                 const btn = document.getElementById('btn-exportar-membros');
                 btn.disabled = true;
                 const textoOriginal = btn.textContent;
@@ -1779,7 +2033,7 @@
             },
 
             async exportarAniversariantes() {
-                if (!this.perfil || this.perfil.papel !== 'admin') return;
+                if (!this.can('ax')) return;
                 const btn = document.getElementById('btn-exportar-aniversariantes');
                 btn.disabled = true;
                 const textoOriginal = btn.textContent;
@@ -1812,8 +2066,34 @@
 
             // ---------- Ministérios (administrador) ----------
             async renderMinisterios() {
-                const { data, error } = await db.from('ministerios').select('nome').order('nome');
+                const admin = this.can('nd');
+                const podePedir = admin || this.can('np');
+                const [{ data, error }, ped] = await Promise.all([
+                    db.from('ministerios').select('nome').order('nome'),
+                    db.from('ministerio_pedidos').select('*').order('pedido_em', { ascending: false }).limit(60)
+                ]);
                 if (error) { this.toast('Erro ao carregar os ministérios.', true); return; }
+                const pedidos = ped.error ? [] : (ped.data || []);
+                const pendentes = pedidos.filter(p => p.status === 'pendente');
+                const decididos = pedidos.filter(p => p.status !== 'pendente').slice(0, 5);
+                this.pedidosMin = pendentes;
+
+                document.getElementById('btn-novo-ministerio').hidden = !podePedir;
+                document.getElementById('btn-novo-ministerio').textContent = admin ? '+ Novo ministério' : '+ Solicitar novo ministério';
+                document.getElementById('descricao-ministerios').textContent = admin
+                    ? 'Renomear atualiza todos os membros do ministério. Ao apagar, os membros passam para "Nenhum".'
+                    : (podePedir ? 'Seus pedidos de novo ministério, renomear ou apagar ficam pendentes até o administrador aprovar.' : 'Lista de ministérios.');
+                const linhasPedido = [...pendentes, ...decididos];
+                document.getElementById('bloco-pedidos-min').hidden = linhasPedido.length === 0;
+                document.getElementById('tabela-pedidos-min').innerHTML = linhasPedido.map(p => `
+                    <tr>
+                        <td class="col-nome" data-label="Pedido">${this.descricaoPedidoMin(p)}</td>
+                        <td data-label="Solicitado por">${esc(p.pedido_por_nome) || '—'}<br><span style="color:var(--cor-texto-luz);font-size:12px">${formatarDataHora(p.pedido_em)}</span></td>
+                        <td data-label="Status">${p.status === 'pendente' ? 'Pendente' : (p.status === 'aprovado' ? 'Aprovado' : 'Recusado')}${p.decidido_em ? `<br><span style="color:var(--cor-texto-luz);font-size:12px">${esc(p.decidido_por_nome) || ''} · ${formatarDataHora(p.decidido_em)}</span>` : ''}</td>
+                        <td data-label="Ações">${p.status === 'pendente' && admin
+                            ? `<button class="botao botao-primario botao-pequeno" onclick="app.decidirPedidoMin(${Number(p.id)}, true)">Aprovar</button> <button class="botao botao-secundario botao-pequeno" onclick="app.decidirPedidoMin(${Number(p.id)}, false)">Recusar</button>`
+                            : '—'}</td>
+                    </tr>`).join('');
 
                 const tbody = document.getElementById('tabela-ministerios');
                 const msgVazia = document.getElementById('mensagem-vazia-ministerios');
@@ -1831,13 +2111,16 @@
                         <td data-label="Membros">${x.total}</td>
                         <td data-label="Ações">${x.nome === 'Nenhum'
                             ? '<span style="color:var(--cor-texto-luz);font-size:12px">Padrão, não pode ser alterado</span>'
-                            : `<button class="botao botao-primario botao-pequeno" onclick="app.abrirMinisterio(${i})">Renomear ou apagar</button>`}</td>
+                            : (!podePedir ? '—' : pendentes.some(p => p.nome_atual === x.nome)
+                                ? '<span style="color:var(--cor-visitante);font-size:12px">Pedido pendente</span>'
+                                : `<button class="botao botao-primario botao-pequeno" onclick="app.abrirMinisterio(${i})">${admin ? 'Renomear ou apagar' : 'Solicitar alteração'}</button>`)}</td>
                     </tr>`).join('');
             },
 
             abrirNovoMinisterio() {
                 this.ministerioEditando = null;
-                document.getElementById('modal-ministerio-titulo').textContent = 'Novo ministério';
+                this.ajustarModalMinisterio();
+                document.getElementById('modal-ministerio-titulo').textContent = this.ehAdmin() ? 'Novo ministério' : 'Solicitar novo ministério';
                 document.getElementById('form-ministerio-dados').reset();
                 document.getElementById('btn-apagar-ministerio').hidden = true;
                 document.getElementById('modal-ministerio').classList.add('aberto');
@@ -1847,17 +2130,65 @@
                 const x = this.ministeriosTela[i];
                 if (!x || x.nome === 'Nenhum') return;
                 this.ministerioEditando = x;
-                document.getElementById('modal-ministerio-titulo').textContent = 'Renomear ministério';
+                this.ajustarModalMinisterio();
+                document.getElementById('modal-ministerio-titulo').textContent = this.ehAdmin() ? 'Renomear ministério' : 'Solicitar alteração';
                 document.getElementById('ministerio-nome').value = x.nome;
                 document.getElementById('btn-apagar-ministerio').hidden = false;
                 document.getElementById('modal-ministerio').classList.add('aberto');
             },
 
+            ehAdmin() { return this.can('nd'); },
+
+            ajustarModalMinisterio() {
+                document.getElementById('btn-salvar-ministerio').textContent = this.ehAdmin() ? 'Salvar' : 'Enviar pedido';
+                document.getElementById('btn-apagar-ministerio').textContent = this.ehAdmin() ? 'Apagar' : 'Pedir para apagar';
+            },
+
+            descricaoPedidoMin(p) {
+                if (p.tipo === 'criar') return `Criar "${esc(p.nome_novo)}"`;
+                if (p.tipo === 'renomear') return `Renomear "${esc(p.nome_atual)}" para "${esc(p.nome_novo)}"`;
+                return `Apagar "${esc(p.nome_atual)}"`;
+            },
+
+            traduzirErroPedido(error) {
+                const m = (error && error.message) || '';
+                return m && !/^(permission|new row|duplicate|JWT|Failed)/i.test(m) ? m : 'Não foi possível enviar o pedido.';
+            },
+
+            async enviarPedidoMinisterio(tipo, atual, novo) {
+                const { error } = await db.rpc('pedir_ministerio', { p_tipo: tipo, p_nome_atual: atual, p_nome_novo: novo });
+                if (error) { this.toast(this.traduzirErroPedido(error), true); return false; }
+                this.fecharModalMinisterio();
+                this.toast('Pedido enviado para aprovação do administrador.');
+                this.renderizarSecaoAtual();
+                return true;
+            },
+
+            async decidirPedidoMin(id, aprovar) {
+                if (!this.ehAdmin()) return;
+                const p = (this.pedidosMin || []).find(x => Number(x.id) === Number(id));
+                const texto = p ? this.descricaoPedidoMin(p).replace(/&quot;/g, '"').replace(/&amp;/g, '&') : 'este pedido';
+                if (!confirm(`${aprovar ? 'Aprovar' : 'Recusar'}: ${texto}?`)) return;
+                const { error } = await db.rpc('decidir_pedido_ministerio', { p_id: id, p_aprovar: aprovar });
+                if (error) { this.toast(this.traduzirErroPedido(error), true); return; }
+                this.toast(aprovar ? 'Pedido aprovado e aplicado.' : 'Pedido recusado.');
+                await this.atualizarMinisterios();
+            },
+
             async salvarMinisterio(event) {
                 event.preventDefault();
-                if (!this.perfil || this.perfil.papel !== 'admin') return;
+                if (!(this.can('nd') || this.can('np'))) return;
                 const nome = document.getElementById('ministerio-nome').value.trim().replace(/\s+/g, ' ');
                 if (nome.length < 2) { this.toast('Informe o nome do ministério.', true); return; }
+
+                if (!this.ehAdmin()) {
+                    const btnP = document.getElementById('btn-salvar-ministerio');
+                    btnP.disabled = true;
+                    if (this.ministerioEditando) await this.enviarPedidoMinisterio('renomear', this.ministerioEditando.nome, nome);
+                    else await this.enviarPedidoMinisterio('criar', null, nome);
+                    btnP.disabled = false;
+                    return;
+                }
 
                 const btn = document.getElementById('btn-salvar-ministerio');
                 btn.disabled = true;
@@ -1878,7 +2209,12 @@
 
             async apagarMinisterio() {
                 const x = this.ministerioEditando;
-                if (!x || !this.perfil || this.perfil.papel !== 'admin') return;
+                if (!x || !(this.can('nd') || this.can('np'))) return;
+                if (!this.ehAdmin()) {
+                    if (!confirm(`Enviar pedido para apagar o ministério "${x.nome}"?`)) return;
+                    await this.enviarPedidoMinisterio('apagar', x.nome, null);
+                    return;
+                }
                 const aviso = x.total > 0
                     ? `Apagar o ministério "${x.nome}"? ${x.total} membro(s) passarão para "Nenhum".`
                     : `Apagar o ministério "${x.nome}"?`;
@@ -1945,6 +2281,7 @@
                     document.getElementById(id).innerHTML = this.opcoesMembros(null, null);
                 });
                 document.getElementById('btn-excluir-celula').hidden = true;
+                this.travarCampos('form-celula-dados', 'btn-salvar-celula', true);
                 document.getElementById('modal-celula').classList.add('aberto');
             },
 
@@ -1962,7 +2299,8 @@
                 document.getElementById('celula-lider').innerHTML = this.opcoesMembros(c.lider_id, null);
                 document.getElementById('celula-vice').innerHTML = this.opcoesMembros(c.vice_lider_id, null);
                 document.getElementById('celula-anfitriao').innerHTML = this.opcoesMembros(c.anfitriao_id, null);
-                document.getElementById('btn-excluir-celula').hidden = !(this.perfil && this.perfil.papel === 'admin');
+                document.getElementById('btn-excluir-celula').hidden = !this.can('cd');
+                this.travarCampos('form-celula-dados', 'btn-salvar-celula', this.can('ce'));
                 document.getElementById('modal-celula').classList.add('aberto');
             },
 
@@ -1996,7 +2334,7 @@
             },
 
             async excluirCelula() {
-                if (!this.celulaEditando || !this.perfil || this.perfil.papel !== 'admin') return;
+                if (!this.celulaEditando || !this.can('cd')) return;
                 if (!confirm(`Excluir a célula "${this.celulaEditando.nome}"? Os membros ligados a ela ficarão sem célula.`)) return;
                 const { error } = await db.from('celulas').delete().eq('id', this.celulaEditando.id);
                 if (error) { this.toast('Não foi possível excluir a célula.', true); return; }
@@ -2012,6 +2350,37 @@
             },
 
             // ---------- Ficha ----------
+            // Valores antigos (ex.: "Não informado", "Outro") continuam aparecendo na ficha até serem trocados
+            valorComLegado(selectId, valor) {
+                const sel = document.getElementById(selectId);
+                sel.querySelectorAll('option[data-legado]').forEach(o => o.remove());
+                if (valor && ![...sel.options].some(o => o.value === valor)) {
+                    const o = document.createElement('option');
+                    o.value = valor; o.textContent = `${valor} (antigo)`; o.setAttribute('data-legado', '1');
+                    sel.appendChild(o);
+                }
+                sel.value = valor || '';
+            },
+
+            travarCampos(formId, botaoId, editavel) {
+                document.querySelectorAll(`#${formId} input, #${formId} select, #${formId} textarea`).forEach(el => { el.disabled = !editavel; });
+                document.getElementById(botaoId).hidden = !editavel;
+            },
+
+            ajustarSituacoesNovo() {
+                const sel = document.getElementById('form-situacao');
+                [...sel.options].forEach(o => {
+                    const vis = o.value === 'Visitante';
+                    o.disabled = vis ? !this.can('ve') : !this.can('mc');
+                });
+                const livre = [...sel.options].find(o => !o.disabled);
+                if (livre && sel.selectedOptions[0] && sel.selectedOptions[0].disabled) sel.value = livre.value;
+            },
+
+            restaurarSituacoes() {
+                [...document.getElementById('form-situacao').options].forEach(o => { o.disabled = false; });
+            },
+
             async abrirNovoMembro() {
                 if (!(await this.carregarListas())) return;
                 this.membroEditando = null;
@@ -2021,7 +2390,10 @@
                 document.getElementById('btn-aprovar').hidden = true;
                 document.getElementById('form-discipulador').innerHTML = this.opcoesMembros(null, null);
                 document.getElementById('form-celula').innerHTML = this.opcoesCelulas(null);
+                ['form-genero', 'form-estado-civil'].forEach(id => document.getElementById(id).querySelectorAll('option[data-legado]').forEach(o => o.remove()));
                 document.getElementById('btn-excluir').hidden = true;
+                this.travarCampos('form-membro', 'btn-salvar', true);
+                this.ajustarSituacoesNovo();
                 document.getElementById('ficha-info').hidden = true;
                 document.getElementById('historico').hidden = true;
                 document.getElementById('modal-membro').classList.add('aberto');
@@ -2037,8 +2409,8 @@
                 document.getElementById('form-nome').value = m.nome;
                 document.getElementById('form-telefone').value = m.telefone || '';
                 document.getElementById('form-data-nascimento').value = m.data_nascimento || '';
-                document.getElementById('form-genero').value = m.genero;
-                document.getElementById('form-estado-civil').value = m.estado_civil;
+                this.valorComLegado('form-genero', m.genero);
+                this.valorComLegado('form-estado-civil', m.estado_civil);
                 const legado = (!m.discipulador_id && m.discipulador)
                     ? `<option value="__legado" selected>Texto anterior: ${esc(m.discipulador)}</option>` : '';
                 document.getElementById('form-discipulador').innerHTML = this.opcoesMembros(m.discipulador_id, m.id, legado);
@@ -2046,17 +2418,23 @@
                 document.getElementById('form-email').value = m.email || '';
                 document.getElementById('form-endereco').value = m.endereco || '';
                 document.getElementById('form-situacao').value = m.situacao;
-                document.getElementById('btn-aprovar').hidden = m.situacao !== 'Aguardando aprovação';
+                document.getElementById('btn-aprovar').hidden = m.situacao !== 'Aguardando aprovação' || !this.can('ma');
                 document.getElementById('form-ministerio').value = m.ministerio;
                 document.getElementById('form-data-cadastro').value = m.data_cadastro;
                 document.getElementById('form-data-batismo').value = m.data_batismo || '';
-                document.getElementById('btn-excluir').hidden = !(this.perfil && this.perfil.papel === 'admin');
+                const ehVis = m.situacao === 'Visitante';
+                document.getElementById('btn-excluir').hidden = !(ehVis ? this.can('vd') : this.can('md'));
+                this.travarCampos('form-membro', 'btn-salvar', ehVis ? this.can('ve') : this.can('me'));
+                this.restaurarSituacoes();
 
                 const info = document.getElementById('ficha-info');
                 info.hidden = false;
                 info.innerHTML = m.consentimento_em
                     ? `Consentimento LGPD registrado em ${formatarDataHora(m.consentimento_em)} (termo ${esc(m.consentimento_versao)}).`
                     : 'Consentimento LGPD: sem registro neste cadastro.';
+                if (m.ministerio_interesse) {
+                    info.innerHTML += `<br>Ministério de interesse informado no cadastro: <strong>${esc(m.ministerio_interesse)}</strong>${m.situacao === 'Aguardando aprovação' && m.ministerio === 'Nenhum' ? ' (será vinculado ao aprovar)' : ''}.`;
+                }
 
                 document.getElementById('modal-membro').classList.add('aberto');
                 this.carregarHistorico(id);
@@ -2145,7 +2523,7 @@
             },
 
             async moverParaLixeira() {
-                if (!this.membroEditando || !this.perfil || this.perfil.papel !== 'admin') return;
+                if (!this.membroEditando || !(this.membroEditando.situacao === 'Visitante' ? this.can('vd') : this.can('md'))) return;
                 if (!confirm(`Mover o cadastro de ${this.membroEditando.nome} para a lixeira? Você poderá restaurá-lo depois.`)) return;
 
                 const { error } = await db.from('membros')
@@ -2173,6 +2551,11 @@
                 setTimeout(() => el.remove(), 3500);
             }
         };
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.btn-info') && !e.target.closest('#popover-info')) app.fecharHistorico();
+        });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') app.fecharHistorico(); });
 
         app.init();
     </script>

@@ -115,19 +115,18 @@
             </div>
 
             <div class="form-grupo">
-                <label for="genero">Gênero</label>
-                <select id="genero">
-                    <option value="Não informado">Prefiro não informar</option>
+                <label for="genero">Gênero *</label>
+                <select id="genero" required>
+                    <option value="" selected disabled>Selecione</option>
                     <option value="Masculino">Masculino</option>
                     <option value="Feminino">Feminino</option>
-                    <option value="Outro">Outro</option>
                 </select>
             </div>
 
             <div class="form-grupo">
-                <label for="estado-civil">Estado civil</label>
-                <select id="estado-civil">
-                    <option value="Não informado">Prefiro não informar</option>
+                <label for="estado-civil">Estado civil *</label>
+                <select id="estado-civil" required>
+                    <option value="" selected disabled>Selecione</option>
                     <option value="Solteiro(a)">Solteiro(a)</option>
                     <option value="Casado(a)">Casado(a)</option>
                     <option value="União estável">União estável</option>
@@ -203,6 +202,8 @@
                 erro.textContent = 'Informe seu nome completo.';
                 return;
             }
+            if (!document.getElementById('genero').value) { erro.textContent = 'Selecione o gênero.'; return; }
+            if (!document.getElementById('estado-civil').value) { erro.textContent = 'Selecione o estado civil.'; return; }
             if (!document.getElementById('consentimento').checked) {
                 erro.textContent = 'Marque a autorização para enviar o cadastro.';
                 return;

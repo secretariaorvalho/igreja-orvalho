@@ -105,34 +105,33 @@
             </div>
 
             <div class="form-grupo">
-                <label for="telefone">Telefone / WhatsApp</label>
-                <input type="tel" id="telefone" placeholder="(31) 9xxxx-xxxx" maxlength="20" autocomplete="tel" inputmode="tel">
+                <label for="telefone">Telefone / WhatsApp *</label>
+                <input type="tel" id="telefone" required placeholder="(31) 9xxxx-xxxx" maxlength="20" autocomplete="tel" inputmode="tel">
             </div>
 
             <div class="form-grupo">
-                <label for="email">E-mail</label>
+                <label for="email">E-mail (opcional)</label>
                 <input type="email" id="email" maxlength="120" autocomplete="email" inputmode="email">
             </div>
 
             <div class="form-grupo">
-                <label for="nascimento">Data de nascimento</label>
-                <input type="date" id="nascimento">
+                <label for="nascimento">Data de nascimento *</label>
+                <input type="date" id="nascimento" required>
             </div>
 
             <div class="form-grupo">
-                <label for="genero">Gênero</label>
-                <select id="genero">
-                    <option value="Não informado">Prefiro não informar</option>
+                <label for="genero">Gênero *</label>
+                <select id="genero" required>
+                    <option value="" selected disabled>Selecione</option>
                     <option value="Masculino">Masculino</option>
                     <option value="Feminino">Feminino</option>
-                    <option value="Outro">Outro</option>
                 </select>
             </div>
 
             <div class="form-grupo">
-                <label for="estado-civil">Estado civil</label>
-                <select id="estado-civil">
-                    <option value="Não informado">Prefiro não informar</option>
+                <label for="estado-civil">Estado civil *</label>
+                <select id="estado-civil" required>
+                    <option value="" selected disabled>Selecione</option>
                     <option value="Solteiro(a)">Solteiro(a)</option>
                     <option value="Casado(a)">Casado(a)</option>
                     <option value="União estável">União estável</option>
@@ -143,12 +142,20 @@
             </div>
 
             <div class="form-grupo">
-                <label for="endereco">Endereço</label>
-                <input type="text" id="endereco" maxlength="200" autocomplete="street-address" placeholder="Rua, número, bairro, cidade">
+                <label for="ministerio">Ministério que deseja servir *</label>
+                <select id="ministerio" required>
+                    <option value="" selected disabled>Selecione</option>
+                    <option value="__nao_sei">Ainda não sei</option>
+                </select>
             </div>
 
             <div class="form-grupo">
-                <label for="batismo">Data de batismo (se for batizado)</label>
+                <label for="endereco">Endereço *</label>
+                <input type="text" id="endereco" required maxlength="200" autocomplete="street-address" placeholder="Rua, número, bairro, cidade">
+            </div>
+
+            <div class="form-grupo">
+                <label for="batismo">Data de batismo (opcional, se for batizado)</label>
                 <input type="date" id="batismo">
             </div>
 
@@ -190,6 +197,22 @@
         // Se o texto do termo mudar, altere esta versão (ex.: '2027-01-v2').
         const TERMO_VERSAO = '2026-11-v1-membro';
 
+        // Lista de ministérios cadastrados no painel (sempre atualizada)
+        async function carregarMinisterios() {
+            try {
+                const { data, error } = await db.rpc('ministerios_publicos');
+                if (error || !Array.isArray(data)) return;
+                const sel = document.getElementById('ministerio');
+                data.forEach(m => {
+                    const o = document.createElement('option');
+                    o.value = m.nome;
+                    o.textContent = m.nome;
+                    sel.appendChild(o);
+                });
+            } catch (e) { /* mantém só "Ainda não sei" */ }
+        }
+        carregarMinisterios();
+
         function hojeISO() {
             const d = new Date();
             return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -218,6 +241,22 @@
                 erro.textContent = 'Informe seu nome completo.';
                 return;
             }
+            const obrigatorios = [
+                ['telefone', 'Informe seu telefone.'],
+                ['nascimento', 'Informe sua data de nascimento.'],
+                ['genero', 'Selecione o gênero.'],
+                ['estado-civil', 'Selecione o estado civil.'],
+                ['ministerio', 'Selecione o ministério que deseja servir (ou "Ainda não sei").'],
+                ['endereco', 'Informe seu endereço.']
+            ];
+            for (const [id, msg] of obrigatorios) {
+                if (!document.getElementById(id).value.trim()) { erro.textContent = msg; document.getElementById(id).focus(); return; }
+            }
+            if (document.getElementById('telefone').value.replace(/\D/g, '').length < 10) {
+                erro.textContent = 'Confira o telefone (com DDD).';
+                return;
+            }
+            const ministerioEscolha = document.getElementById('ministerio').value;
             const email = document.getElementById('email').value.trim();
             if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
                 erro.textContent = 'Confira o e-mail digitado.';
@@ -247,6 +286,7 @@
                 data_batismo: document.getElementById('batismo').value || null,
                 situacao: 'Aguardando aprovação', // a secretaria confere e aprova no painel
                 ministerio: 'Nenhum',
+                ministerio_interesse: ministerioEscolha === '__nao_sei' ? null : ministerioEscolha,
                 data_cadastro: hojeISO(),
                 consentimento_versao: TERMO_VERSAO // o servidor carimba a data e hora do aceite
             });
